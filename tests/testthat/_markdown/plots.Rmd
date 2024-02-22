@@ -1,0 +1,100 @@
+---
+title: "Test plot variations"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Test plot variations}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = TRUE, fig.width = 7)
+
+library(dplyr)
+library(forcats)
+library(ggplot2)
+library(volker)
+
+
+theme_set(theme_bw())
+
+data <- volker::chatgpt
+
+```
+
+## Frequencies of categorical variables
+
+### 1. One variable: Frequency plot of adopter
+```{r}
+data |> 
+#  mutate(adopter =fct_rev(adopter)) |> 
+  plot_counts_one(adopter)
+```
+
+### 2. Multiple items: Frequency plot for adoption factors
+```{r}
+plot_counts_items(data, starts_with("cg_adoption_"), numbers = "p")
+```
+
+### 3. Two variables: Stacked frequency plot of innovator type by gender
+
+```{r}
+
+# Test whether last categories' percentage is omitted in ordered plots
+data |> 
+  plot_counts_one_grouped(adopter, sd_gender, prop = "rows", numbers="p", ordered = -1)
+
+# Test order of items
+plot_counts_one_grouped(data, sd_gender, adopter)
+
+# Test whether the figure is flipped
+plot_counts_one_grouped(data, adopter, sd_gender, prop = "cols")
+
+# Test whether factor is reversed
+data |> 
+  mutate(adopter=forcats::fct_rev(adopter)) |> 
+  plot_counts_one_grouped(adopter, sd_gender, prop = "cols")
+
+```
+
+## Metric distributions
+
+### 1. Distribution for one metric variable: Age
+```{r}
+plot_metrics_one(data, sd_age)
+```
+
+
+### 2. Distribution of multiple metric items: Adoption factors
+```{r}
+plot_metrics_items(data, starts_with("cg_adoption_"))
+```
+
+### 3. Distribution by a grouping variable
+```{r}
+plot_metrics_one_grouped(data, sd_age, sd_gender)
+plot_metrics_items_grouped(data, starts_with("cg_adoption_"), sd_gender)
+```
+
+### 4. Index  distribution by a grouping variable
+```{r}
+
+data %>%
+  idx_add(starts_with("cg_adoption_social_")) %>%
+  idx_add(starts_with("cg_adoption_fearofuse_")) %>%
+  idx_add(starts_with("cg_adoption_advantage_")) %>%
+  
+  # Set new labels for the three index columns
+  labs_apply(tribble(
+    ~item_name, ~item_label,
+    "idx_cg_adoption_social", "ChatGPT-Erwartung: Social",
+    "idx_cg_adoption_fearofuse", "ChatGPT-Erwartung: Fear of Use",
+    "idx_cg_adoption_advantage", "ChatGPT-Erwartung: Advantage"
+  )) %>%
+  
+  plot_metrics_items_grouped(starts_with("idx_cg_adoption"), adopter)
+  
+```
+
