@@ -1,13 +1,16 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# volkeR-Package <img src="man/figures/logo.png" align="right" height="139" alt="" />
+# volkeR-Package <img src="man/figures/logo.png" align="right" height="139" alt="volkeR package logo" />
 
 <!-- badges: start -->
 
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/strohne/volker/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/strohne/volker/actions/workflows/R-CMD-check.yaml)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/volker)](https://CRAN.R-project.org/package=volker)
+
 <!-- badges: end -->
 
 High-level functions for tabulating, charting and reporting survey data.
@@ -42,6 +45,7 @@ in:
 
 - **Charts**: `plot_metrics()` and `plot_counts()`  
 - **Tables**: `tab_metrics()` and `tab_counts()`  
+- **Tests**: `effect_metrics()` and `effect_counts()`  
 - **Reports**: `report_metrics()` and `report_counts()`
 
 Which one is best? That depends on your objective:
@@ -58,11 +62,14 @@ Which one is best? That depends on your objective:
   Functions for categorical variables contain `counts` in their name,
   those for metric `metrics`.
 
-- *Individual or grouped?*  
+- *Individual, grouped or correlated?*  
   Groups can be compared (e.g., the average age by gender) or
   cross-tabulated (e.g. combinations of education level and gender) by
   providing a grouping column as third parameter of table, plot and
-  report functions.
+  report functions. To calculate correlations and show scatter plots,
+  provide a metric column and set the metric-Paramter to TRUE. The
+  effect-functions calculate effect sizes and statistical tests for
+  group comparisons and correlations.
 
 - *One variable or item batteries?*.  
   Item batteries are often used in surveys. Each item results in a
@@ -138,6 +145,8 @@ items</strong>
 All functions take a data frame as their first argument, followed by
 column selections, and optionally a grouping column. Examples:
 
+Examples:
+
 - One metric variable: `tab_metrics(data, sd_age)`  
 - One categorical variable: `tab_counts(data, sd_gender)`  
 - Grouped metric variable: `tab_metrics(data, sd_age, sd_gender)`  
@@ -154,30 +163,65 @@ the results, see the builtin function help (F1 key).
 
 After deciding whether to plot or tabulate, and whether to handle metric
 or counted data, the column selections determine which of the following
-methods are called under the hood. (Note: Some are not implemented yet.)
+methods are called under the hood. When you provide two sets of columns
+in the first two parameters, data is crossed. By default, the second
+parameter is handled as a categorical variable, resulting in grouped
+tables and plots. For handling metric variables and their correlations,
+set the `metric`-parameter to `TRUE`. (Note: Some are not implemented
+yet.)
 
 | \#  | function                   | implemented | output | scale   | columns  | crossings  |
 |-----|----------------------------|-------------|--------|---------|----------|------------|
 | 1   | tab_counts_one             |             | table  | counts  | one      |            |
 | 2   | tab_counts_one_grouped     |             | table  | counts  | one      | grouped    |
-| 3   | tab_counts_items           |             | table  | counts  | multiple |            |
-| 4   | tab_counts_items_grouped   | not yet     | table  | counts  | multipe  | grouped    |
-| 5   | tab_counts_items_cor       | not yet     | table  | counts  | multipe  | correlated |
-| 6   | tab_metrics_one            |             | table  | metrics | one      |            |
-| 7   | tab_metrics_one_grouped    |             | table  | metrics | one      | grouped    |
-| 8   | tab_metrics_items          |             | table  | metrics | multiple |            |
-| 9   | tab_metrics_items_grouped  |             | table  | metrics | multipe  | grouped    |
-| 10  | tab_metrics_items_cor      |             | table  | metrics | multipe  | correlated |
-| 11  | plot_counts_one            |             | plot   | counts  | one      |            |
-| 12  | plot_counts_one_grouped    |             | plot   | counts  | one      | grouped    |
-| 13  | plot_counts_items          |             | plot   | counts  | multiple |            |
-| 14  | plot_counts_items_grouped  | not yet     | plot   | counts  | multipe  | grouped    |
-| 15  | plot_counts_items_cor      | not yet     | plot   | counts  | multipe  | correlated |
-| 16  | plot_metrics_one           |             | plot   | metrics | one      |            |
-| 17  | plot_metrics_one_grouped   |             | plot   | metrics | one      | grouped    |
-| 18  | plot_metrics_items         |             | plot   | metrics | multiple |            |
-| 19  | plot_metrics_items_grouped |             | plot   | metrics | multipe  | grouped    |
-| 20  | plot_metrics_items_cor     | not yet     | plot   | metrics | multipe  | correlated |
+| 3   | tab_counts_one_cor         | not yet     | table  | counts  | one      | correlated |
+| 4   | tab_counts_items           |             | table  | counts  | multiple |            |
+| 5   | tab_counts_items_grouped   | not yet     | table  | counts  | multiple | grouped    |
+| 6   | tab_counts_items_cor       | not yet     | table  | counts  | multiple | correlated |
+| 7   | tab_metrics_one            |             | table  | metrics | one      |            |
+| 8   | tab_metrics_one_grouped    |             | table  | metrics | one      | grouped    |
+| 9   | tab_metrics_one_cor        |             | table  | metrics | one      | correlated |
+| 10  | tab_metrics_items          |             | table  | metrics | multiple |            |
+| 11  | tab_metrics_items_grouped  |             | table  | metrics | multiple | grouped    |
+| 12  | tab_metrics_items_cor      |             | table  | metrics | multiple | correlated |
+| 13  | plot_counts_one            |             | plot   | counts  | one      |            |
+| 14  | plot_counts_one_grouped    |             | plot   | counts  | one      | grouped    |
+| 15  | plot_counts_one_cor        | not yet     | plot   | counts  | one      | correlated |
+| 16  | plot_counts_items          |             | plot   | counts  | multiple |            |
+| 17  | plot_counts_items_grouped  | not yet     | plot   | counts  | multiple | grouped    |
+| 18  | plot_counts_items_cor      | not yet     | plot   | counts  | multiple | correlated |
+| 19  | plot_metrics_one           |             | plot   | metrics | one      |            |
+| 20  | plot_metrics_one_grouped   |             | plot   | metrics | one      | grouped    |
+| 21  | plot_metrics_one_cor       |             | plot   | metrics | one      | correlated |
+| 22  | plot_metrics_items         |             | plot   | metrics | multiple |            |
+| 23  | plot_metrics_items_grouped |             | plot   | metrics | multiple | grouped    |
+| 24  | plot_metrics_items_cor     |             | plot   | metrics | multiple | correlated |
+
+## Effect sizes and statistical tests
+
+You can calculate effect sizes and conduct basic statistical tests using
+`effect_counts()` and `effect_metrics()`. Effect calculation is included
+in the reports if you request it by the effect-parameter of
+`report_counts()` or `report_metrics()`.
+
+**A word of warning:** Statistics is the world of uncertainty. All
+procedures require mindful interpretation. Counting stars might evoke
+illusions.
+
+| \#  | function                     | implemented | effect size                 | confidence intervals | significance test |
+|-----|------------------------------|-------------|-----------------------------|----------------------|-------------------|
+| 1   | effect_counts_one            | not yet     |                             |                      |                   |
+| 2   | effect_counts_one_grouped    |             | Cramér’s V                  | proportions          | Chi squared       |
+| 3   | effect_counts_one_cor        | not yet     |                             |                      |                   |
+| 4   | effect_counts_items          | not yet     |                             |                      |                   |
+| 5   | effect_counts_items_grouped  | not yet     |                             |                      |                   |
+| 6   | effect_counts_items_cor      | not yet     |                             |                      |                   |
+| 7   | effect_metrics_one           | not yet     |                             |                      |                   |
+| 8   | effect_metrics_one_grouped   |             | R squared                   | means                | t-test            |
+| 9   | effect_metrics_one_cor       |             | Pearson’s r, Spearman’s rho | correlation          | t-test            |
+| 10  | effect_metrics_items         |             | R squared                   | means                | t-test            |
+| 11  | effect_metrics_items_grouped | not yet     |                             |                      |                   |
+| 12  | effect_metrics_items_cor     |             | Pearson’s r, Spearman’s rho | correlation          | t-test            |
 
 ## Where do all the labels go?
 
@@ -205,11 +249,10 @@ with `labs_apply()`:
 
 Be aware that some data operations such as `mutate()` from the tidyverse
 loose labels on their way. In this case, store the labels (in the
-codebook attribute of the data frame) before the operation and resotre
+codebook attribute of the data frame) before the operation and restore
 them afterwards:
 
     data %>%
-      
       labs_store() %>%
       mutate(sd_age = 2024 - sd_age) %>% 
       labs_restore() %>% 
@@ -235,14 +278,108 @@ For best results, use sensible prefixes and captions for your SoSci
 questions. The labels come directly from your questionnaire.
 
 *Please note:* The values `-9` and `[NA] nicht beantwortet` are
-automatically recoded to missing values within all plot, tab and report
-functions. Missing control is on the list for the next package version.
+automatically recoded to missing values within all plot, tab, effect,
+and report functions. See the negatives-Parameter and the
+clean-parameter how to disable automatic residual removal.
 
-## Index calculation
+## Customization
 
-Indexes (=mean of multiple items) can be added using `idx_add()`
-manually and are automatically calculated in report functions.
-Cronbach’s alpha is added to all table outputs.
+You can change plot colors using the theme_vlkr()-function:
+
+    theme_set(
+      theme_vlkr(
+        base_fill = c("#F0983A","#3ABEF0","#95EF39","#E35FF5","#7A9B59"),
+        base_gradient = c("#FAE2C4","#F0983A")
+      )
+    )
+
+Plot and table functions share a number of parameters that can be used
+to customize the outputs. Lookup the available parameters in the help of
+the specific function.
+
+### Data preparation
+
+- **negative**: In surveys, negative values such as -9 or -2 are often
+  used to mark missing values or residual answers (“I don’t know”).
+  Therefore, all metric tables and plots remove negative values before
+  calculation distribution parameters such as the mean. Set negative to
+  TRUE for including those values. Be aware that the cleaning plan may
+  remove some negative values as well and make sure disable cleaning of
+  negative numbers where necessary.
+- **ordered**: Sometimes categories have an order, from low to high or
+  from few to many. It helps visual inspections to plot ordered values
+  with shaded colors instead of arbitrary colors. For frequency plots,
+  you can inform the method about the desired order. By default the
+  functions try to automatically detect a sensitive order.
+- **category**: When you have multiple categories in a column, you can
+  focus one of the categories to simplify the plots and tables. By
+  default, if a column has only TRUE and FALSE values, the outputs focus
+  the TRUE category.
+- **clean** Before all calculations, the dataset goes through a cleaning
+  plan that, for example, recodes residual factor values such as “\[NA\]
+  nicht beantwortet” to missings. See the help for further details or
+  disable data cleaning if you don’t like it. For example, to disable
+  removing of negative residual values, call
+  `options(vlkr.na.numbers=FALSE)`.
+
+### Calculations
+
+- **prop**: Calculating percentages in a cross tab requires careful
+  selection of the base. You can choose between total, row or column
+  percentages. For stacked bar charts, displaying row percentages
+  instead of total percentages gives a direct visual comparison of
+  groups.
+- **ci**: Add confidence intervals to plot and table outputs.
+- **index**: Indexes (=mean of multiple items) can be added using
+  `idx_add()` manually and are automatically calculated in report
+  functions. Cronbach’s alpha is added to all table outputs.
+- **effect**: You are not sure whether the differences are statistical
+  significant? One option is to look out for non overlapping confidence
+  intervals. In addition, the effect option calculates effect sizes such
+  as Cramer’s v or Cohen’s d and generates typical statistical tests
+  such as Chi-squared tests and t-tests.
+- **method**: By default, correlations are calculated using Pearson’s R.
+  You can choose Spearman’s Rho with the methods-parameter.
+
+### Labeling
+
+- **title**: All plots usually get a title derived from the column
+  attributes or column names. Set to FALSE to suppress the title or
+  provide a title of your choice as a character value.  
+- **labels**: Labels are extracted from the column attributes, if
+  present. Set to FALSE to output bare column names and values.
+
+### Tables
+
+- **percent**: Frequency tables show percentages by default. Set to
+  FALSE to get raw proportions - easier to postprocess in further
+  calculations.
+- **digits**: Tables containing means and standard deviations by default
+  round values to one digit. Increase the number to show more digits.
+- **values**: The more variables you desire, the denser the output must
+  be. Some tables try to serve you insights at the maximum and show two
+  values in one cell, for example the absolute counts (n) and the
+  percentages (p), or the mean (m) and the standard deviation (sd).
+  Control your desire with the values-parameter.
+
+### Plots
+
+- **numbers**: Bar plots give quick impressions, tables provide exact
+  numbers. In bar charts you can combine both and print the frequencies
+  onto the bars. Set the numbers parameter to “n”, “p” or c(“n”,“p”). To
+  prevent cluttering and overlaps, numbers are only plotted on bars
+  larger than 5%.
+- **limits**: Do you know how to create misleading graphs? It happens
+  when you truncate the minimum or maximum value in a scale. The scale
+  limits are automatically guessed by the package functions (work in
+  progress). Use the limits-parameter to manually fix any misleading
+  graphs.
+- **box**: In metric plots you can visualise the distribution by adding
+  boxplots.
+- **log**: Metric values having long tail distributions are not easy to
+  visualise. In scatter plots, you can use a logarithmic scale. Be
+  aware, that zero values will be omitted because their log value is
+  undefined.
 
 ## Installation
 
@@ -250,30 +387,33 @@ As with all other packages you’ll have to install the package first.
 
     install.packages("strohne/volker")
 
-Alternatively, you can install the latest development version from
-GitHub using remotes (if asked, skip the updates):
+You can try alternative versions:
 
-    if (!require(remotes)) { install.packages("remotes") }
-    remotes::install_github("strohne/volker")
+- If you want, install the main version from GitHub using remotes, which
+  may include features not yet published on CRAN (if asked, skip the
+  updates):
 
-The package includes vignettes, they help getting started. When
-installing a development version, you need to build them. Only then,
-you’ll find them linked in the help index page.
+      if (!require(remotes)) { install.packages("remotes") }
+      remotes::install_github("strohne/volker", build_vignettes = TRUE)
 
-    remotes::install_github("strohne/volker", build_vignettes = TRUE)
+- In case you are adventurous, try the latest experimental development
+  version which lives in the devel branch (if asked, skip the updates):
 
-The beta version used in the statistics course in winter 2023/24 at the
-University of Münster can be installed using remotes from the beta
-branch (if asked, skip the updates):
+      if (!require(remotes)) { install.packages("remotes") }
+      remotes::install_github("strohne/volker", ref="devel", upgrade="never", build_vignettes = TRUE)
 
-    if (!require(remotes)) { install.packages("remotes") }
-    remotes::install_github("strohne/volker", ref="beta", upgrade="never")
+- The beta version used in the statistics course in winter 2023/24 at
+  the University of Münster can be installed using remotes from the beta
+  branch (if asked, skip the updates):
 
-After installing the package, load it:
+      if (!require(remotes)) { install.packages("remotes") }
+      remotes::install_github("strohne/volker", ref="beta", upgrade="never")
+
+**2. After installing the package, load it:**
 
     library(volker)
 
-Finally, use it:
+**3. Finally, use it:**
 
     # Example data
     data <- volker::chatgpt
@@ -291,7 +431,8 @@ Finally, use it:
 - Interactive reports: Use the `volker::html_report` template in your
   Markdown documents to switch between tables and plots when using the
   report-functions.  
-- Calculate metric indexes using `idx_add()` (*work in progress*).  
+- Calculate metric indexes using `idx_add()` and effect sizes  
+  (*work in progress*)  
 - Simplified hints for wrong parameters, e.g. if you forget to provide a
   data frame (*work in progress*).
 - Tidyverse style.
@@ -328,13 +469,13 @@ Other packages with high-level reporting functions:
 
 ## Authors and citation
 
-**Author**  
-Jakob Jünger (University of Münster)
+**Authors**  
+Jakob Jünger (University of Münster)  
+Henrieke Kotthoff (University of Münster)  
 
 **Contributers**  
-Henrieke Kotthoff (University of Münster)  
 Chantal Gärtner (University of Münster)
 
 **Citation**  
-Jünger, J. (2024). volker: High-level functions for tabulating, charting
-and reporting survey data. R package version 1.0.
+Jünger, J. & Kotthoff, H. (2024). volker: High-level functions for
+tabulating, charting and reporting survey data. R package version 2.0.

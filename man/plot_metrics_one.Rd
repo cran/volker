@@ -2,13 +2,15 @@
 % Please edit documentation in R/plots.R
 \name{plot_metrics_one}
 \alias{plot_metrics_one}
-\title{Output a histogram for a single metric variable}
+\title{Output a density plot for a single metric variable}
 \usage{
 plot_metrics_one(
   data,
   col,
-  limits = NULL,
   negative = FALSE,
+  ci = FALSE,
+  box = FALSE,
+  limits = NULL,
   title = TRUE,
   labels = TRUE,
   clean = TRUE,
@@ -16,13 +18,17 @@ plot_metrics_one(
 )
 }
 \arguments{
-\item{data}{A tibble}
+\item{data}{A tibble.}
 
-\item{col}{The columns holding metric values}
-
-\item{limits}{The scale limits. Set NULL to extract limits from the label. NOT IMPLEMENTED YET.}
+\item{col}{The column holding metric values.}
 
 \item{negative}{If FALSE (default), negative values are recoded as missing values.}
+
+\item{ci}{Whether to plot the confidence interval.}
+
+\item{box}{Whether to add a boxplot.}
+
+\item{limits}{The scale limits. Set NULL to extract limits from the label.}
 
 \item{title}{If TRUE (default) shows a plot title derived from the column labels.
 Disable the title with FALSE or provide a custom title as character value.}
@@ -34,10 +40,10 @@ Disable the title with FALSE or provide a custom title as character value.}
 \item{...}{Placeholder to allow calling the method with unused parameters from \link{plot_metrics}.}
 }
 \value{
-A ggplot object
+A ggplot object.
 }
 \description{
-Output a histogram for a single metric variable
+Output a density plot for a single metric variable
 }
 \examples{
 library(volker)

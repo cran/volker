@@ -7,24 +7,24 @@
 tab_counts_items(
   data,
   cols,
-  missings = FALSE,
-  values = c("n", "p"),
+  ci = FALSE,
   percent = TRUE,
+  values = c("n", "p"),
   labels = TRUE,
   clean = TRUE,
   ...
 )
 }
 \arguments{
-\item{data}{A tibble containing item measures}
+\item{data}{A tibble containing item measures.}
 
-\item{cols}{Tidyselect item variables (e.g. starts_with...)}
+\item{cols}{Tidyselect item variables (e.g. starts_with...).}
 
-\item{missings}{Include missing values (default FALSE)}
+\item{ci}{Whether to compute 95\% confidence intervals.}
 
-\item{values}{The values to output: n (frequency) or p (percentage) or both (the default)}
+\item{percent}{Set to FALSE to prevent calculating percents from proportions.}
 
-\item{percent}{Set to FALSE to prevent calculating percents from proportions}
+\item{values}{The values to output: n (frequency) or p (percentage) or both (the default).}
 
 \item{labels}{If TRUE (default) extracts labels from the attributes, see \link{codebook}.}
 
@@ -33,11 +33,10 @@ tab_counts_items(
 \item{...}{Placeholder to allow calling the method with unused parameters from \link{tab_counts}.}
 }
 \value{
-A volker tibble
+A volker tibble.
 }
 \description{
-TODO: Reorder boolean categories: first TRUE, then FALSE
-TODO: Support single columns
+Output frequencies for multiple variables
 }
 \examples{
 library(volker)

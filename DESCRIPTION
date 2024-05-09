@@ -2,13 +2,13 @@ Package: volker
 Type: Package
 Title: High-Level Functions for Tabulating, Charting and Reporting
         Survey Data
-Version: 1.0.2
-Date: 2024-02-03
+Version: 2.0.0
+Date: 2024-05-07
 Authors@R: 
   c(
     person("Jakob", "Jünger", email = "jakob.juenger@uni-muenster.de", role = c("aut", "cre", "cph"),
       comment = c(ORCID = "0000-0003-1860-6695")),
-    person("Henrieke", "Kotthoff", email = "henrieke.kotthoff@uni-muenster.de", role = "ctb"),
+    person("Henrieke", "Kotthoff", email = "henrieke.kotthoff@uni-muenster.de", role = c("aut","ctb")),
     person("Chantal", "Gärtner", email = "chantal.gaertner@uni-muenster.de", role = "ctb", 
       comment = c(ORCID = "0000-0002-3653-6013"))
   )
@@ -21,21 +21,20 @@ URL: https://github.com/strohne/volker
 BugReports: https://github.com/strohne/volker/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 LazyData: true
-Imports: stats, rlang, lifecycle, glue, tibble, dplyr, tidyr,
-        tidyselect, ggplot2 (>= 2.2.1), scales, base64enc, stringr,
-        purrr, magrittr, forcats, skimr, knitr, kableExtra, rmarkdown,
-        janitor, psych
+Imports: stats, rlang, lifecycle, tibble, dplyr, tidyr, tidyselect,
+        ggplot2 (>= 2.2.1), scales, base64enc, purrr, magrittr, skimr,
+        broom, knitr, kableExtra, rmarkdown, psych, effectsize, car
 Depends: R (>= 4.2)
 Suggests: tidyverse, remotes, usethis, testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2024-02-21 22:30:41 UTC; Jakob
+Packaged: 2024-05-09 20:18:28 UTC; Jakob
 Author: Jakob Jünger [aut, cre, cph] (<https://orcid.org/0000-0003-1860-6695>),
-  Henrieke Kotthoff [ctb],
+  Henrieke Kotthoff [aut, ctb],
   Chantal Gärtner [ctb] (<https://orcid.org/0000-0002-3653-6013>)
 Maintainer: Jakob Jünger <jakob.juenger@uni-muenster.de>
 Repository: CRAN
-Date/Publication: 2024-02-22 21:00:02 UTC
+Date/Publication: 2024-05-09 20:30:03 UTC

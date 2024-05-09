@@ -7,14 +7,17 @@
 labs_store(data)
 }
 \arguments{
-\item{data}{A data frame}
+\item{data}{A data frame.}
 }
 \value{
-A data frame
+A data frame.
 }
 \description{
 You can restore the labels after mutate operations by calling
 \link{labs_restore}.
+}
+\details{
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 }
 \examples{
 library(dplyr)

@@ -7,8 +7,10 @@
 report_counts(
   data,
   cols,
-  col_group = NULL,
-  index = TRUE,
+  cross = NULL,
+  metric = FALSE,
+  index = FALSE,
+  effect = FALSE,
   numbers = NULL,
   title = TRUE,
   close = TRUE,
@@ -17,18 +19,24 @@ report_counts(
 )
 }
 \arguments{
-\item{data}{A data frame}
+\item{data}{A data frame.}
 
 \item{cols}{A tidy column selection,
 e.g. a single column (without quotes)
 or multiple columns selected by methods such as starts_with().}
 
-\item{col_group}{Optional, a grouping column (without quotes).}
+\item{cross}{Optional, a grouping column (without quotes).}
+
+\item{metric}{When crossing variables, the cross column parameter can contain categorical or metric values.
+By default, the cross column selection is treated as categorical data.
+Set metric to TRUE, to treat it as metric and calculate correlations.}
 
 \item{index}{When the cols contain items on a metric scale
 (as determined by \link{get_direction}),
 an index will be calculated using the 'psych' package.
 Set to FALSE to suppress index generation.}
+
+\item{effect}{Whether to report statistical tests and effect sizes. See \link{effect_counts} for further parameters.}
 
 \item{numbers}{The numbers to print on the bars: "n" (frequency), "p" (percentage) or both.
 Set to NULL to remove numbers.}
@@ -38,14 +46,14 @@ Classes for tabset pills will be added.}
 
 \item{close}{Whether to close the last tab (default value TRUE) or to keep it open.
 Keep it open to add further custom tabs by adding headers on the fifth level
-in Markdown (e.g. ##### Method)}
+in Markdown (e.g. ##### Method).}
 
 \item{clean}{Prepare data by \link{data_clean}.}
 
-\item{...}{Parameters passed to the plot and tab functions.}
+\item{...}{Parameters passed to the \link{plot_counts} and \link{tab_counts} and \link{effect_counts} functions.}
 }
 \value{
-A volker report object
+A volker report object.
 }
 \description{
 Depending on your column selection, different types of plots and tables are generated.
@@ -55,6 +63,8 @@ See \link{plot_counts} and \link{tab_counts}.
 For item batteries, an index is calculated and reported.
 When used in combination with the Markdown-template "html_report",
 the different parts of the report are grouped under a tabsheet selector.
+
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 }
 \examples{
 library(volker)

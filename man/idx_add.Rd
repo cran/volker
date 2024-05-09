@@ -7,13 +7,13 @@
 idx_add(data, cols, newcol = NULL, negative = FALSE, clean = TRUE)
 }
 \arguments{
-\item{data}{A dataframe}
+\item{data}{A dataframe.}
 
-\item{cols}{A tidy selection of item columns}
+\item{cols}{A tidy selection of item columns.}
 
 \item{newcol}{Name of the index as a character value.
 Set to NULL (default) to automatically build a name
-from the common column prefix, prefixed with "idx_"}
+from the common column prefix, prefixed with "idx_".}
 
 \item{negative}{If FALSE (default), negative values are recoded as missing values.}
 
@@ -24,7 +24,7 @@ The input tibble with an additional column that contains the index values.
 The column contains the result of the alpha calculation in the attribute named "psych.alpha".
 }
 \description{
-Calculate the mean value of multiple items
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 }
 \examples{
 ds <- volker::chatgpt

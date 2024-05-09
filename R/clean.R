@@ -3,10 +3,12 @@
 #' The tibble remembers whether it was already cleaned and
 #' the cleaning plan is only performed once in the first call.
 #'
-#' @param data Data frame
+#' @keywords internal
+#'
+#' @param data Data frame.
 #' @param plan The cleaning plan. By now, only "sosci" is supported. See \link{data_clean_sosci}.
-#' @param ... Other parameters passed to the appropriate cleaning function
-#' @return Cleaned data frame with vlkr_df class
+#' @param ... Other parameters passed to the appropriate cleaning function.
+#' @return Cleaned data frame with vlkr_df class.
 #' @examples
 #' ds <- volker::chatgpt
 #' ds <- data_clean(ds)
@@ -34,11 +36,15 @@ data_clean <- function(data, plan = "sosci", ...) {
 #'
 #' @param data Data frame
 #' @param remove.na.levels Remove residual values from factor columns.
-#'                      Either a character vector with residual values or TRUE to use defaults in \link{VLKR_NA_LEVELS}
+#'                      Either a character vector with residual values or TRUE to use defaults in \link{VLKR_NA_LEVELS}.
+#'                      You can also define or disable residual levels by setting the global option vlkr.na.levels
+#'                      (e.g. `options(vlkr.na.levels=c("Not answered"))` or to disable `options(vlkr.na.levels=FALSE)`).
 #' @param remove.na.numbers Remove residual values from numeric columns.
-#'                      Either a numeric vector with residual values or TRUE to use defaults in \link{VLKR_NA_NUMERIC}
-#' @param add.whitespace Add whitespace after slashes for improved label breaks
-#' @return Data frame with vlkr_df class (the class is used to prevent double preparation)
+#'                      Either a numeric vector with residual values or TRUE to use defaults in \link{VLKR_NA_NUMERIC}.
+#'                      You can also define or disable residual values by setting the global option vlkr.na.numbers
+#'                      (e.g. `options(vlkr.na.numbers=c(-2,-9))` or to disable `options(vlkr.na.numbers=FALSE)`).
+#' @param add.whitespace Add whitespace after slashes for improved label breaks.
+#' @return Data frame with vlkr_df class (the class is used to prevent double preparation).
 #' @examples
 #' ds <- volker::chatgpt
 #' ds <- data_clean_sosci(ds)
@@ -61,7 +67,12 @@ data_clean_sosci <- function(data, remove.na.levels = TRUE, remove.na.numbers = 
   # Remove residual levels such as "[NA] nicht beantwortet"
   if (remove.na.levels != FALSE) {
     if (is.logical(remove.na.levels)) {
-      remove.na.levels <- VLKR_NA_LEVELS
+      remove.na.levels <- getOption("vlkr.na.levels")
+      if (is.null(remove.na.levels)) {
+        remove.na.levels <- VLKR_NA_LEVELS
+      } else if (all(remove.na.levels == FALSE)) {
+        remove.na.levels <- c()
+      }
     }
 
     data <- dplyr::mutate(
@@ -76,7 +87,12 @@ data_clean_sosci <- function(data, remove.na.levels = TRUE, remove.na.numbers = 
   # Remove residual numbers such as -9
   if (remove.na.numbers != FALSE) {
     if (is.logical(remove.na.numbers)) {
-      remove.na.numbers <- VLKR_NA_NUMERIC
+      remove.na.numbers <- getOption("vlkr.na.numbers")
+      if (is.null(remove.na.numbers)) {
+        remove.na.numbers <- VLKR_NA_NUMERIC
+      } else if (all(remove.na.numbers == FALSE)) {
+        remove.na.numbers <- c()
+      }
     }
 
     data <- dplyr::mutate(
@@ -94,7 +110,7 @@ data_clean_sosci <- function(data, remove.na.levels = TRUE, remove.na.numbers = 
       data,
       dplyr::across(
         tidyselect::where(is.character),
-        ~ stringr::str_replace_all(., stringr::fixed("/"), "/\u200B")
+        function(x) gsub("/", "/\u200B", x, fixed = TRUE)
       )
     )
 
@@ -102,7 +118,10 @@ data_clean_sosci <- function(data, remove.na.levels = TRUE, remove.na.numbers = 
       data,
       dplyr::across(
         tidyselect::where(is.factor),
-        ~ forcats::fct_relabel(., ~ stringr::str_replace_all(., stringr::fixed("/"), "/\u200B"))
+        function(x) {
+          levels(x) <- gsub("/","/\u200B", levels(x), fixed=T)
+          return (x)
+        }
       )
     )
   }
@@ -113,13 +132,123 @@ data_clean_sosci <- function(data, remove.na.levels = TRUE, remove.na.numbers = 
   .to_vlkr_df(data)
 }
 
+#' Remove missings and output a message
+#'
+#' @keywords internal
+#'
+#' @param data Data frame.
+#' @param cols A tidy column selection.
+#' @return Data frame.
+data_rm_missings <- function(data, cols) {
+
+  cases <- sum(is.na(dplyr::select(data, {{ cols }})))
+
+  if (cases > 0) {
+    data <- tidyr::drop_na(data, {{ cols }})
+
+    colnames <- rlang::as_label(rlang::enquo(cols))
+    data <- .attr_insert(data, "missings", "na", list("cols" = colnames, "n"=cases))
+  }
+
+  data
+}
+
+#' Remove zero values, drop missings and output a message
+#'
+#' @keywords internal
+#'
+#' @param data Data frame.
+#' @param cols A tidy column selection.
+#' @return Data frame.
+data_rm_zeros <- function(data, cols) {
+
+  cases <- sum(dplyr::select(data, {{ cols }}) == 0)
+
+  if (cases > 0) {
+    data <- data |>
+      labs_store() |>
+      dplyr::mutate(dplyr::across({{ cols }}, ~ dplyr::if_else(. == 0, NA, .))) |>
+      labs_restore()
+
+    data <- tidyr::drop_na(data, {{ cols }})
+
+    colnames <- rlang::as_label(rlang::enquo(cols))
+    data <- .attr_insert(data, "missings", "zero", list("cols" = colnames, "n"=cases))
+  }
+
+  data
+}
+
+#' Remove negatives and output a warning
+#'
+#' @keywords internal
+#'
+#' @param data Data frame
+#' @param cols A tidy column selection
+#' @return Data frame
+data_rm_negatives <- function(data, cols) {
+
+    cases <- sum(dplyr::select(data, {{ cols }}) < 0, na.rm=TRUE)
+
+    if (cases > 0) {
+      data |>
+        labs_store() |>
+        dplyr::mutate(dplyr::across({{ cols }}, ~ ifelse(. < 0, NA, .))) |>
+        labs_restore()
+
+      data <- tidyr::drop_na(data, {{ cols }})
+
+      colnames <- rlang::as_label(rlang::enquo(cols))
+      data <- .attr_insert(data, "missings", "negative", list("cols" = colnames, "n"=cases))
+    }
+
+    data
+}
+
+#' Get a formatted baseline for removed zero, negative, and missing cases
+#'
+#' @keywords internal
+#'
+#' @param obj An object with the missings attribute.
+#' @return A formatted message or NULL if the missings attribute is not present.
+get_baseline <- function(obj) {
+  missings <- attr(obj, "missings", exact=TRUE)
+  if (!is.null(missings)) {
+    baseline <- c()
+    cols <- c()
+
+    if (!is.null(missings$na)) {
+      baseline <- c(baseline, paste0(missings$na$n," missing"))
+      cols <- c(cols, missings$na$cols)
+    }
+
+    if (!is.null(missings$zero)) {
+      baseline <- c(baseline, paste0(missings$zero$n," zero"))
+      cols <- c(cols, missings$zero$cols)
+    }
+
+    if (!is.null(missings$negative)) {
+      baseline <- c(baseline, paste0(missings$negative$n," negative"))
+      cols <- c(cols, missings$negative$cols)
+    }
+
+    baseline <- paste0(
+      paste0(baseline, collapse=", "),
+      " case(s) ommited."
+    )
+  } else {
+    baseline <- NULL
+  }
+
+  baseline
+}
 
 #' Add vlkr_df class - that means, the data frame has been prepared
 #'
 #' @keywords internal
 #'
-#' @param data A tibble
-#' @return A tibble of class vlkr_df
+#' @param data A tibble.
+#' @return A tibble of class vlkr_df.
 .to_vlkr_df <- function(data, digits = NULL) {
   data <- dplyr::as_tibble(data)
   class(data) <- c("vlkr_df", setdiff(class(data), "vlkr_df"))

@@ -7,8 +7,10 @@
 plot_metrics_items(
   data,
   cols,
-  limits = NULL,
   negative = FALSE,
+  ci = FALSE,
+  box = FALSE,
+  limits = NULL,
   title = TRUE,
   labels = TRUE,
   clean = TRUE,
@@ -16,13 +18,17 @@ plot_metrics_items(
 )
 }
 \arguments{
-\item{data}{A tibble containing item measures}
+\item{data}{A tibble containing item measures.}
 
-\item{cols}{Tidyselect item variables (e.g. starts_with...)}
-
-\item{limits}{The scale limits. Set NULL to extract limits from the labels. NOT IMPLEMENTED YET.}
+\item{cols}{Tidyselect item variables (e.g. starts_with...).}
 
 \item{negative}{If FALSE (default), negative values are recoded as missing values.}
+
+\item{ci}{Whether to plot the 95\% confidence interval of the mean.}
+
+\item{box}{Whether to add boxplots.}
+
+\item{limits}{The scale limits. Set NULL to extract limits from the labels. NOT IMPLEMENTED YET.}
 
 \item{title}{If TRUE (default) shows a plot title derived from the column labels.
 Disable the title with FALSE or provide a custom title as character value.}
@@ -34,7 +40,7 @@ Disable the title with FALSE or provide a custom title as character value.}
 \item{...}{Placeholder to allow calling the method with unused parameters from \link{plot_metrics}.}
 }
 \value{
-A ggplot object
+A ggplot object.
 }
 \description{
 Output averages for multiple variables
