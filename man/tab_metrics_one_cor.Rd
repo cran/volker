@@ -8,7 +8,6 @@ tab_metrics_one_cor(
   data,
   col,
   cross,
-  negative = FALSE,
   method = "pearson",
   ci = FALSE,
   digits = 2,
@@ -24,11 +23,9 @@ tab_metrics_one_cor(
 
 \item{cross}{The second column holding metric values.}
 
-\item{negative}{If FALSE (default), negative values are recoded as missing values.}
-
 \item{method}{The output metrics, TRUE or pearson = Pearson's R, spearman = Spearman's rho}
 
-\item{ci}{Whether to output confidence intervals}
+\item{ci}{Whether to output confidence intervals.}
 
 \item{digits}{The number of digits to print.}
 
@@ -39,7 +36,7 @@ tab_metrics_one_cor(
 \item{...}{Placeholder to allow calling the method with unused parameters from \link{tab_counts}.}
 }
 \value{
-A volker tibble
+A volker tibble.
 }
 \description{
 Correlate two columns

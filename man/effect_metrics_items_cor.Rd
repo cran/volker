@@ -2,13 +2,12 @@
 % Please edit documentation in R/effects.R
 \name{effect_metrics_items_cor}
 \alias{effect_metrics_items_cor}
-\title{Output correlation coefficients for items}
+\title{Output correlation coefficients for items and one metric variable}
 \usage{
 effect_metrics_items_cor(
   data,
   cols,
   cross,
-  negative = FALSE,
   method = "pearson",
   labels = TRUE,
   clean = TRUE,
@@ -20,11 +19,9 @@ effect_metrics_items_cor(
 
 \item{cols}{Tidyselect item variables (e.g. starts_with...).}
 
-\item{cross}{Tidyselect item variables to correlate (e.g. starts_with...).}
+\item{cross}{The column holding metric values to correlate.}
 
-\item{negative}{If FALSE (default), negative values are recoded as missing values.}
-
-\item{method}{The output metrics, TRUE or pearson = Pearson's R, spearman = Spearman's rho.}
+\item{method}{The output metrics, pearson = Pearson's R, spearman = Spearman's rho.}
 
 \item{labels}{If TRUE (default) extracts labels from the attributes, see \link{codebook}.}
 
@@ -42,8 +39,9 @@ The correlation is calculated using \code{stats::\link[stats:cor.test]{cor.test}
 library(volker)
 data <- volker::chatgpt
 
-effect_metrics_items_cor(data, starts_with("cg_adoption_adv"), starts_with("use_"))
-
+effect_metrics_items_cor(
+  data, starts_with("cg_adoption_adv"), sd_age
+)
 
 }
 \keyword{internal}

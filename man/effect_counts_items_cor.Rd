@@ -2,16 +2,16 @@
 % Please edit documentation in R/effects.R
 \name{effect_counts_items_cor}
 \alias{effect_counts_items_cor}
-\title{Correlate the values in multiple items and output effect sizes and tests}
+\title{Correlate the values in multiple items with one metric column and output effect sizes and tests}
 \usage{
-effect_counts_items_cor(data, cols, cross, clean = T, ...)
+effect_counts_items_cor(data, cols, cross, clean = TRUE, ...)
 }
 \arguments{
 \item{data}{A tibble containing item measures.}
 
 \item{cols}{Tidyselect item variables (e.g. starts_with...).}
 
-\item{cross}{The target columns or NULL to calculate correlations within the source columns.}
+\item{cross}{The metric column.}
 
 \item{clean}{Prepare data by \link{data_clean}.}
 

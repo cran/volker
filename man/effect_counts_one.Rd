@@ -2,18 +2,16 @@
 % Please edit documentation in R/effects.R
 \name{effect_counts_one}
 \alias{effect_counts_one}
-\title{Test whether the shares differ from homogeneity}
+\title{Test homogeneity of category shares}
 \usage{
-effect_counts_one(data, col, labels = TRUE, clean = TRUE, ...)
+effect_counts_one(data, col, clean = TRUE, ...)
 }
 \arguments{
 \item{data}{A tibble.}
 
 \item{col}{The column holding factor values.}
 
-\item{labels}{If TRUE (default) extracts labels from the attributes, see \link{codebook}.}
-
-\item{clean}{Prepare data by \link{data_clean}.}
+\item{clean}{Prepare data by \link{data_clean}}
 
 \item{...}{Placeholder to allow calling the method with unused parameters from \link{effect_counts}.}
 }
@@ -21,6 +19,15 @@ effect_counts_one(data, col, labels = TRUE, clean = TRUE, ...)
 A volker tibble.
 }
 \description{
-\strong{Not yet implemented. The future will come.}
+Performs a goodness-of-fit test and calculates the Gini coefficient.
+The goodness-of-fit-test is calculated using \code{stats::\link[stats:chisq.test]{chisq.test}}.
+}
+\examples{
+library(volker)
+data <- volker::chatgpt
+data <- data |>
+  filter(sd_gender != "diverse") |>
+  effect_counts_one(sd_gender)
+
 }
 \keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/effects.R
 \name{effect_metrics}
 \alias{effect_metrics}
-\title{Output effect sizes and regression model parameters}
+\title{Output effect sizes and test statistics for metric data}
 \usage{
 effect_metrics(data, cols, cross = NULL, metric = FALSE, clean = TRUE, ...)
 }
@@ -27,19 +27,25 @@ Set metric to TRUE, to treat it as metric and calculate correlations.}
 A volker tibble.
 }
 \description{
-The regression type depends on the number of selected columns:
+The calculations depend on the number of selected columns:
 \itemize{
-\item One column: see \link{effect_metrics_one} (not yet implemented)
-\item Multiple columns: see \link{effect_metrics_items}
-\item One column and one grouping column: see \link{effect_metrics_one_grouped}
-\item Multiple columns and one grouping column: see \link{effect_metrics_items_grouped} (not yet implemented)
+\item One metric column: see \link{effect_metrics_one}
+\item Multiple metric columns: see \link{effect_metrics_items}
+}
+
+Group comparisons:
+\itemize{
+\item One metric column and one grouping column: see \link{effect_metrics_one_grouped}
+\item Multiple metric columns and one grouping column: see \link{effect_metrics_items_grouped}
+\item Multiple metric columns and multiple grouping columns: not yet implemented
 }
 
 By default, if you provide two column selections, the second column is treated as categorical.
 Setting the metric-parameter to TRUE will call the appropriate functions for correlation analysis:
 \itemize{
 \item Two metric columns: see \link{effect_metrics_one_cor}
-\item Multiple columns: see \link{effect_metrics_items_cor}
+\item Multiple metric columns and one metric column: see \link{effect_metrics_items_cor}
+\item Two metric column selections: see \link{effect_metrics_items_cor_items}
 }
 
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}

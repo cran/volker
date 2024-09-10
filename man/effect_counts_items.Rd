@@ -2,7 +2,7 @@
 % Please edit documentation in R/effects.R
 \name{effect_counts_items}
 \alias{effect_counts_items}
-\title{Test whether shares differ}
+\title{Test homogeneity of category shares for multiple items}
 \usage{
 effect_counts_items(data, cols, labels = TRUE, clean = TRUE, ...)
 }
@@ -21,6 +21,14 @@ effect_counts_items(data, cols, labels = TRUE, clean = TRUE, ...)
 A volker tibble.
 }
 \description{
-\strong{Not yet implemented. The future will come.}
+Performs a goodness-of-fit test and calculates the Gini coefficient for each item.
+The goodness-of-fit-test is calculated using  \code{stats::\link[stats:chisq.test]{chisq.test}}.
+}
+\examples{
+library(volker)
+data <- volker::chatgpt
+
+effect_counts_items(data, starts_with("cg_adoption_adv"))
+
 }
 \keyword{internal}

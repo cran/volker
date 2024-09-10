@@ -8,7 +8,6 @@ effect_metrics_one_grouped(
   data,
   col,
   cross,
-  negative = FALSE,
   method = "lm",
   labels = TRUE,
   clean = TRUE,
@@ -21,8 +20,6 @@ effect_metrics_one_grouped(
 \item{col}{The column holding metric values.}
 
 \item{cross}{The column holding groups to compare.}
-
-\item{negative}{If FALSE (default), negative values are recoded as missing values.}
 
 \item{method}{A character vector of methods, e.g. c("t.test","lm").
 Supported methods are t.test (only valid if the cross column contains two levels)
@@ -39,6 +36,11 @@ A volker list object containing volker tables with the requested statistics.
 }
 \description{
 The regression output comes from \code{stats::\link[stats:lm]{lm}}.
+T-test is performed using \code{stats::\link[stats:t.test]{t.test}}.
+Normality check is performed using
+\code{stats::\link[stats:shapiro.test]{shapiro.test}}.
+Equality of variances across groups is assessed using \code{car::\link[car:leveneTest]{leveneTest}}.
+Cohen's d is calculated using \code{effectsize::\link[effectsize:cohens_d]{cohens_d}}.
 }
 \examples{
 library(volker)

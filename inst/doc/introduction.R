@@ -6,9 +6,15 @@ knitr::opts_chunk$set(
   knitr.table.format = "html"
 )
 
+options(
+  vlkr.fig.settings=list(
+    html = list(
+      dpi = 96, scale = 1, width = 910, pxperline = 12
+    )
+  )
+)
 
 ## ----warning=FALSE------------------------------------------------------------
-
 # Load the package
 library(volker)
 
@@ -35,8 +41,7 @@ tab_counts(ds, starts_with("use_"))
 # One metric variable
 tab_metrics(ds, sd_age)
 
-## ----fig.width=6, fig.height=8------------------------------------------------
-
+## -----------------------------------------------------------------------------
 # Multiple metric items
 tab_metrics(ds, starts_with("cg_adoption_"))
 
@@ -55,7 +60,7 @@ tab_metrics(ds, sd_age, use_work, metric = TRUE, ci = TRUE)
 ## -----------------------------------------------------------------------------
 ds |> 
   filter(sd_gender != "diverse") |> 
-  plot_counts(adopter, sd_gender, prop="rows", numbers="p")
+  plot_counts(adopter, sd_gender, prop="rows", numbers=c("p","n"))
 
 ## -----------------------------------------------------------------------------
 ds |> 
@@ -63,14 +68,12 @@ ds |>
   effect_counts(adopter, sd_gender)
 
 ## -----------------------------------------------------------------------------
-
 ds %>% 
   filter(sd_gender != "diverse") %>% 
   report_metrics(starts_with("cg_adoption_"), sd_gender, index=TRUE, box=TRUE, ci=TRUE)
 
 
 ## -----------------------------------------------------------------------------
-
 #> ### Adoption types
 #> 
 #> ```{r echo=FALSE}
@@ -101,19 +104,55 @@ theme_set(theme_vlkr(
 codebook(ds)
 
 ## -----------------------------------------------------------------------------
-newlabels <- tribble(
-  ~item_name, ~item_label,
-  "cg_adoption_advantage_01", "Allgemeine Vorteile",
-  "cg_adoption_advantage_02", "Finanzielle Vorteile",
-  "cg_adoption_advantage_03", "Vorteile bei der Arbeit",
-  "cg_adoption_advantage_04", "Macht mehr Spaß"
-)
+ds %>%
+  labs_apply(
+    items = list(
+      "cg_adoption_advantage_01" = "Allgemeine Vorteile",
+      "cg_adoption_advantage_02" = "Finanzielle Vorteile",
+      "cg_adoption_advantage_03" = "Vorteile bei der Arbeit",
+      "cg_adoption_advantage_04" = "Macht mehr Spaß"
+    )
+  ) %>% 
+  tab_metrics(starts_with("cg_adoption_advantage_"))
+
+
+## -----------------------------------------------------------------------------
 
 ds %>%
-  labs_apply(newlabels) %>%
-  tab_metrics_items(starts_with("cg_adoption_advantage_"))
+  labs_apply(
+    cols=starts_with("cg_adoption"),  
+    values = list(
+      "1" = "Stimme überhaupt nicht zu",
+      "2" = "Stimme nicht zu",
+      "3" = "Unentschieden",
+      "4" = "Stimme zu",
+      "5" =  "Stimme voll und ganz zu"
+    ) 
+  ) %>% 
+  plot_metrics(starts_with("cg_adoption"))
 
 
+## ----eval = FALSE-------------------------------------------------------------
+#  
+#  library(readxl)
+#  library(writexl)
+#  
+#  # Save codebook to a file
+#  codes <- codebook(ds)
+#  write_xlsx(codes,"codebook.xlsx")
+#  
+#  # Load and apply a codebook from a file
+#  codes <- read_xlsx("codebook_revised.xlsx")
+#  ds <- labs_apply(ds, codebook)
+#  
+
+## -----------------------------------------------------------------------------
+ds %>%
+  labs_store() %>%
+  mutate(sd_age = 2024 - sd_age) %>% 
+  labs_restore() %>% 
+  
+  tab_metrics(sd_age)
 
 ## -----------------------------------------------------------------------------
 ds %>%
