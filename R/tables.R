@@ -558,6 +558,7 @@ tab_counts_items <- function(data, cols, ci = FALSE, percent = TRUE, values = c(
     dplyr::group_by(dplyr::across(tidyselect::all_of("item"))) %>%
     dplyr::mutate(p = .data$n / sum(.data$n)) %>%
     dplyr::ungroup() %>%
+    dplyr::arrange(.data$value) |>
     dplyr::mutate(value = as.factor(.data$value)) %>%
     dplyr::mutate(item = factor(.data$item, levels=cols_names)) |>
     dplyr::arrange(.data$item)
@@ -569,7 +570,8 @@ tab_counts_items <- function(data, cols, ci = FALSE, percent = TRUE, values = c(
     tidyr::pivot_wider(
       names_from = value,
       values_from = !!sym(value),
-      values_fill = stats::setNames(list(0), value)
+      values_fill = stats::setNames(list(0), value),
+      names_expand = TRUE
     ) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(total = sum(dplyr::c_across(-1), na.rm=TRUE)) %>%
@@ -582,7 +584,8 @@ tab_counts_items <- function(data, cols, ci = FALSE, percent = TRUE, values = c(
     tidyr::pivot_wider(
       names_from = value,
       values_from = !!sym(value),
-      values_fill = stats::setNames(list(0), value)
+      values_fill = stats::setNames(list(0), value),
+      names_expand = TRUE
     ) %>%
     dplyr::rowwise() %>%
     dplyr::mutate(total = sum(dplyr::c_across(-1), na.rm=TRUE)) %>%
@@ -623,6 +626,7 @@ tab_counts_items <- function(data, cols, ci = FALSE, percent = TRUE, values = c(
   }
 
   # Replace item labels
+  # TODO: use codebook to determine the column order
   if (labels) {
     result <- labs_replace(
       result, "item",
@@ -641,7 +645,7 @@ tab_counts_items <- function(data, cols, ci = FALSE, percent = TRUE, values = c(
 
   # Remove common item prefix
   # TODO: make dry
-  prefix <- get_prefix(result$item, trim=T)
+  prefix <- get_prefix(result$item, trim = TRUE)
   result <- dplyr::mutate(result, item = trim_prefix(.data$item, prefix))
 
   # Rename first columns
@@ -904,7 +908,7 @@ tab_counts_items_grouped <- function(data, cols, cross, category = NULL, percent
   }
 
   # Remove common item prefix
-  prefix <- get_prefix(result$item, trim=T)
+  prefix <- get_prefix(result$item, trim = TRUE)
   result <- dplyr::mutate(result, item = trim_prefix(.data$item, prefix))
 
   # Rename first columns

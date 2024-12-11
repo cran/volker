@@ -1,6 +1,7 @@
 ## ----include=FALSE------------------------------------------------------------
 knitr::opts_chunk$set(
-  comment = "", 
+  comment = "#>",
+  collapse = TRUE,
   echo = TRUE,
   message = FALSE,
   knitr.table.format = "html"
@@ -70,8 +71,7 @@ ds |>
 ## -----------------------------------------------------------------------------
 ds %>% 
   filter(sd_gender != "diverse") %>% 
-  report_metrics(starts_with("cg_adoption_"), sd_gender, index=TRUE, box=TRUE, ci=TRUE)
-
+  report_metrics(starts_with("cg_adoption_"), sd_gender, box=TRUE, ci=TRUE)
 
 ## -----------------------------------------------------------------------------
 #> ### Adoption types
@@ -156,19 +156,40 @@ ds %>%
 
 ## -----------------------------------------------------------------------------
 ds %>%
-  idx_add(starts_with("cg_adoption_")) %>%
+  add_index(starts_with("cg_adoption_")) %>%
   tab_metrics(idx_cg_adoption)
 
 ## -----------------------------------------------------------------------------
 ds %>%
-  idx_add(starts_with("cg_adoption_")) %>%
+  add_index(starts_with("cg_adoption_")) %>%
   tab_metrics(idx_cg_adoption, adopter)
 
 ## -----------------------------------------------------------------------------
 ds %>%
-  idx_add(starts_with("cg_adoption_")) %>%
-  idx_add(starts_with("cg_adoption_advantage")) %>%
-  idx_add(starts_with("cg_adoption_fearofuse")) %>%
-  idx_add(starts_with("cg_adoption_social")) %>%
+  add_index(starts_with("cg_adoption_")) %>%
+  add_index(starts_with("cg_adoption_advantage")) %>%
+  add_index(starts_with("cg_adoption_fearofuse")) %>%
+  add_index(starts_with("cg_adoption_social")) %>%
   tab_metrics(starts_with("idx_cg_adoption"))
+
+## -----------------------------------------------------------------------------
+ds |> 
+  report_metrics(starts_with("cg_adoption"), factors = TRUE, clusters = TRUE)
+
+
+## -----------------------------------------------------------------------------
+ds |> 
+  add_factors(starts_with("cg_adoption"), k = 3)  |>
+  report_metrics(fct_cg_adoption_1, fct_cg_adoption_2, metric = TRUE)
+
+
+## -----------------------------------------------------------------------------
+ds |> 
+  add_factors(starts_with("cg_adoption"), k = NULL) |>
+  factor_tab(starts_with("fct_cg_adoption"))
+
+## -----------------------------------------------------------------------------
+ds |>
+  add_clusters(starts_with("cg_adoption"), k = 3) |>
+  report_counts(sd_gender, cls_cg_adoption, prop = "cols")
 

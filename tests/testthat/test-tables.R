@@ -11,14 +11,44 @@ data <- volker::chatgpt
 # Frequency table
 # tab_counts_one
 test_that("Frequency table", {
-  expect_snapshot(volker::tab_counts(data, sd_gender), cran= TRUE)
+  expect_snapshot(volker::tab_counts(data, sd_gender), cran = TRUE)
 })
 
 
 # Cross table of categorical variables
 # tab_counts_one_grouped
 test_that("Cross table of categorical variables", {
-  expect_snapshot(volker::tab_counts(data, adopter, sd_gender), cran= TRUE)
+  expect_snapshot(volker::tab_counts(data, adopter, sd_gender), cran = TRUE)
+})
+
+# Cross table of categorical variables with cols
+# tab_counts_one_grouped
+test_that("Cross table of categorical variables with cols", {
+  expect_snapshot(volker::tab_counts(
+    data,
+    adopter,
+    sd_gender,
+    prop = "cols"), cran = TRUE)
+})
+
+# Cross table of categorical variables with p
+# tab_counts_one_grouped
+test_that("Cross table of categorical variables with percent", {
+  expect_snapshot(volker::tab_counts(
+    data,
+    adopter,
+    sd_gender,
+    values = "p"), cran = TRUE)
+})
+
+# Cross table of categorical variables with counts
+# tab_counts_one_grouped
+test_that("Cross table of categorical variables with counts", {
+  expect_snapshot(volker::tab_counts(
+    data,
+    adopter,
+    sd_gender,
+    values = "n"), cran = TRUE)
 })
 
 # Frequency table for multiple categorical variables
@@ -26,7 +56,29 @@ test_that("Cross table of categorical variables", {
 test_that("Frequency table for multiple categorical variables", {
   expect_snapshot(
     volker::tab_counts(
-      data, tidyselect::starts_with("cg_adoption_")), cran= TRUE)
+      data, tidyselect::starts_with("cg_adoption_")), cran = TRUE)
+})
+
+# Frequency table for multiple categorical variables
+# tab_counts_items
+test_that("Frequency table for multiple categorical variables with percent", {
+  expect_snapshot(
+    volker::tab_counts(
+      data,
+      tidyselect::starts_with("cg_adoption_"),
+      values = "p"),
+      cran = TRUE)
+})
+
+# Frequency table for multiple categorical variables
+# tab_counts_items
+test_that("Frequency table for multiple categorical variables with counts", {
+  expect_snapshot(
+    volker::tab_counts(
+      data,
+      tidyselect::starts_with("cg_adoption_"),
+    values = "n"),
+    cran = TRUE)
 })
 
 # Frequency table for multiple categorical variables grouped
@@ -38,28 +90,84 @@ test_that("Frequency table for multiple categorical variables by grouping variab
       tidyselect::starts_with("cg_adoption_"),
       sd_gender,
       category = c("agree", "strongly agree")),
-      cran= TRUE)
+      cran = TRUE)
+
+  expect_error(
+    volker::tab_counts(
+      data,
+      tidyselect::starts_with("cg_adoption_"),
+      sd_gender,
+      category = c("agree", "strongly")),
+      "One or more specified categories do not exist in the data."
+)
+})
+
+# Frequency table for multiple categorical variables grouped
+# tab_counts_items_grouped
+test_that("Frequency table for multiple categorical variables by binary grouping variable", {
+
+  data <- data |>
+    dplyr::mutate(dplyr::across(starts_with("cg_adoption_advantage"), \(x) x > 3))
+
+  expect_snapshot(
+    volker::tab_counts(
+      data,
+      tidyselect::starts_with("cg_adoption_advantage"),
+      sd_gender,
+      cran = TRUE)
+)
 })
 
 # Distribution table for age
 # tab_metrics_one
 test_that("Distribution table for age", {
-  expect_snapshot(volker::tab_metrics(data, sd_age), cran= TRUE)
+  expect_snapshot(volker::tab_metrics(data, sd_age), cran = TRUE)
+})
+
+# tab_metrics_one
+test_that("Distribution table for age with ci", {
+  expect_snapshot(volker::tab_metrics(data, sd_age, ci = TRUE), cran = TRUE)
 })
 
 # Group comparison of a metric variable
 # tab_metrics_one_grouped
 test_that("Group comparison of a metric variable", {
-  expect_snapshot(volker::tab_metrics(data, sd_age, sd_gender), cran= TRUE)
+  expect_snapshot(volker::tab_metrics(data, sd_age, sd_gender), cran = TRUE)
 })
 
 # Correlations of two variables
 # tab_metrics_one_cor
-test_that("Compare means of multiple items", {
+test_that("Correlations with two variables", {
   expect_snapshot(
     volker::tab_metrics(
       data, use_work, use_private,
-      metric=TRUE), cran= TRUE)
+      metric=TRUE), cran = TRUE)
+})
+
+test_that("Correlations with two variables with no common prefix", {
+  expect_snapshot(
+    volker::tab_metrics(
+      data, sd_age, use_private,
+      metric=TRUE), cran = TRUE)
+})
+
+# Correlations of two variables
+# tab_metrics_one_cor
+test_that("Correlation with two variables and ci", {
+  expect_snapshot(
+    volker::tab_metrics(
+      data, use_work, use_private,
+      metric=TRUE,
+      ci = TRUE), cran = TRUE)
+})
+
+# tab_metrics_one_cor
+test_that("Correlation with two variables and spearman", {
+  expect_snapshot(
+    volker::tab_metrics(
+      data, use_work, use_private,
+      metric=TRUE,
+      method = "spearman"), cran = TRUE)
 })
 
 
@@ -69,18 +177,54 @@ test_that("Distribution table for multiple metric items", {
   expect_snapshot(
     volker::tab_metrics(
       data, tidyselect::starts_with("cg_adoption_")
-      ),cran= TRUE)
+      ),cran = TRUE)
+})
+
+test_that("Distribution table for multiple metric items with ci", {
+  expect_snapshot(
+    volker::tab_metrics(
+      data, tidyselect::starts_with("cg_adoption_"),
+      ci = TRUE),
+    cran = TRUE)
 })
 
 # Compare means of multiple items
 # tab_metrics_items_grouped
-test_that("Compare means of multiple items", {
+test_that("Compare means of multiple items with and without common", {
   expect_snapshot(
     volker::tab_metrics(
       data,
       tidyselect::starts_with("cg_adoption_"),
       sd_gender
-      ), cran= TRUE)
+      ), cran = TRUE)
+
+  expect_snapshot(
+    volker::tab_metrics(
+      data,
+      c("sd_age", "use_work"),
+      sd_gender
+      ), cran = TRUE)
+})
+
+
+# Compare means of multiple items
+# tab_metrics_items_grouped
+test_that("Compare means of multiple items with sd or mean", {
+  expect_snapshot(
+    volker::tab_metrics(
+      data,
+      tidyselect::starts_with("cg_adoption_"),
+      sd_gender,
+      values = "sd"
+    ), cran = TRUE)
+
+  expect_snapshot(
+    volker::tab_metrics(
+      data,
+      tidyselect::starts_with("cg_adoption_"),
+      sd_gender,
+      values = "m"
+    ), cran = TRUE)
 })
 
 
@@ -92,7 +236,7 @@ test_that("Correlations of an item battery with one variable", {
       data,
       tidyselect::starts_with("cg_adoption_"),
       sd_age, metric=TRUE
-      ), cran= TRUE)
+      ), cran = TRUE)
 })
 
 # Correlations of an item battery with one variable and spearman
@@ -103,7 +247,7 @@ test_that("Correlations of an item battery with one variable and spearman", {
       data,
       tidyselect::starts_with("cg_adoption_"),
       sd_age, metric=TRUE, method = "spearman"
-    ), cran= TRUE)
+    ), cran = TRUE)
 })
 
 # Correlations of two item batteries
@@ -115,7 +259,16 @@ test_that("Correlate two item batteries", {
       tidyselect::starts_with("cg_adoption_"),
       tidyselect::starts_with("use_"),
       metric=TRUE
-      ),cran= TRUE)
+      ),cran = TRUE)
+
+  # shared prefix
+  expect_snapshot(
+    volker::tab_metrics(
+      data,
+      tidyselect::starts_with("cg_adoption_"),
+      tidyselect::starts_with("cg_adoption_"),
+      metric=TRUE
+    ),cran = TRUE)
 })
 
 
@@ -127,19 +280,19 @@ test_that("Correlate two item batteries with ci", {
       data, starts_with("cg_adoption_adv"),
       starts_with("use_"),
       metric = TRUE, ci = T
-    ),cran= TRUE)
+    ),cran = TRUE)
 })
 
 # Correlations of two item batteries and spearman
 # tab_metrics_items_cor_items
-test_that("Correlate two item batteries with spearmn", {
+test_that("Correlate two item batteries with spearman", {
   expect_snapshot(
     volker::tab_metrics(
       data,
       tidyselect::starts_with("cg_adoption_"),
       tidyselect::starts_with("use_"),
       metric=TRUE, method = "spearman",
-    ),cran= TRUE)
+    ),cran = TRUE)
 })
 
 
@@ -166,6 +319,6 @@ test_that("Item order is kept", {
     ) |>
       tab_counts_items(c(f1:f10))
 
-    , cran= TRUE
+    , cran = TRUE
   )
 })

@@ -349,8 +349,10 @@ labs_apply <- function(data, codes = NULL, cols = NULL, items = TRUE, values = T
         )
 
       if (nrow(value_rows) > 0) {
-        value_factor <- ("item_class" %in% colnames(value_rows)) &&
-          any(value_rows$item_class == "factor", na.rm= TRUE)
+        value_factor <- (
+            ("item_class" %in% colnames(value_rows)) &&
+            any(value_rows$item_class == "factor", na.rm= TRUE)
+        )
 
         # Factor order
         if (value_factor) {
@@ -368,24 +370,35 @@ labs_apply <- function(data, codes = NULL, cols = NULL, items = TRUE, values = T
           }
         }
 
+        # Labels with numeric and boolean names are stored directly as attributes in the column (label_nested is FALSE)
+        # All other labels are stored as a list in the "label" attribute (label_nested is TRUE)
         else {
+
           label_attr <- list()
+          label_nested <- TRUE
+
           for (vr in c(1:nrow(value_rows))) {
             value_name <- value_rows$value_name[vr]
             value_label <- value_rows$value_label[vr]
 
             # Numeric or boolean values
             if (grepl("^-?[0-9TF]+$", value_name)) {
-              attr(data[[col]], as.character(value_name)) <- value_label
-            } else {
-              label_attr[[as.character(value_name)]] <- value_label
+              label_nested <- FALSE
             }
+            label_attr[[as.character(value_name)]] <- value_label
           }
 
           if (length(label_attr) > 0) {
-            attr(data[[col]], "labels") <- label_attr
-          } else {
-            attr(data[[col]], "labels") <- NULL
+            if (!label_nested) {
+              attr(data[[col]], "labels") <- NULL
+              for (value_name in names(label_attr)) {
+                value_label <- label_attr[[value_name]]
+                attr(data[[col]], as.character(value_name)) <- NULL
+                attr(data[[col]], as.character(value_name)) <- value_label
+              }
+            } else {
+              attr(data[[col]], "labels") <- label_attr
+            }
           }
         }
       }
@@ -831,28 +844,49 @@ trim_label <- function(x) {
   x
 }
 
-#' Remove a prefix from a character vector
+#' Remove a prefix from a character vector or a factor
 #'
-#' If the resulting character would be empty,
+#' If the resulting character values would be empty,
 #' the prefix is returned. At the end, all items
 #' in the vector are trimmed using \link{trim_label}.
 #'
+#' If x is a factor, the order of factor levels is retained.
+#'
 #' @keywords internal
 #'
-#' @param x A character vector.
+#' @param x A character or factor vector.
 #' @param prefix The prefix. Set to TRUE to first extract the prefix.
-#' @return The trimmed character vector.
+#' @return The trimmed character or factor vector.
 trim_prefix <- function(x, prefix=TRUE) {
+
+  if (is.factor(x)) {
+    levels_x <- levels(x)
+  } else {
+    levels_x <- c()
+  }
+  x <- as.character(x)
+
   if (!is.na(prefix) && (prefix == TRUE)) {
-    prefix <- get_prefix(x, trim=T)
+    prefix <- get_prefix(x, trim = TRUE)
   }
 
   if (!is.na(prefix) && (prefix != "")) {
+
+    levels_x <- sub(prefix, "", levels_x, fixed = TRUE)
+    levels_x <- ifelse(levels_x == "", prefix, levels_x)
+
     x <- sub(prefix, "", x, fixed = TRUE)
     x = ifelse(x == "", prefix, x)
   }
 
-  trim_label(x)
+  levels_x <- trim_label(levels_x)
+  x <- trim_label(x)
+
+  if (length(levels_x) > 0) {
+    x <- factor(x, levels = unique(levels_x))
+  }
+
+  return(x)
 }
 
 
@@ -905,7 +939,7 @@ label_scale <- function(x, scale) {
 #'
 #' @keywords internal
 #'
-#' @param labels Vector of labels to check.
+#' @param labels Vector of labels to check. The values are converted to characters.
 #' @param threshold Length threshold beyond which the angle is applied.
 #'                  Default is 20.
 #' @param angle The angle to apply if any label exceeds the threshold.
@@ -913,7 +947,7 @@ label_scale <- function(x, scale) {
 #' @return A single angle value.
 get_angle <- function(labels, threshold = 20, angle = 45) {
   # Check if any label exceeds the threshold and return the angle accordingly
-  if (any(nchar(labels) > threshold)) {
+  if (any(nchar(as.character(labels)) > threshold)) {
     return(angle)
   } else {
     return(0)

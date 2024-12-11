@@ -1,3 +1,7 @@
+# volker 3.0.0
+
+* Implemented cluster and factor analysis
+
 # volker 2.1.0
 
 * Implemented missing plot, tab, and effect functions

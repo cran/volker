@@ -569,12 +569,15 @@ plot_counts_items <- function(data, cols, category = NULL, ordered = NULL, ci = 
     dplyr::group_by(dplyr::across(tidyselect::all_of("item"))) %>%
     dplyr::mutate(p = (.data$n / sum(.data$n)) * 100) %>%
     dplyr::ungroup() %>%
+    dplyr::arrange(.data$value) |>
     dplyr::mutate(value = as.factor(.data$value)) %>%
     dplyr::mutate(item = factor(.data$item, levels=cols_names)) |>
     dplyr::arrange(.data$item)
 
   # Detect whether the categories are binary
-  categories <- result$value |> unique() |> as.character()
+  # TODO: use codebook to determine the order
+  categories <- levels(result$value) |> as.character()
+
   if ((length(categories) == 2) && (is.null(category)) && ("TRUE" %in% categories)) {
     category <- "TRUE"
   }
@@ -608,7 +611,8 @@ plot_counts_items <- function(data, cols, category = NULL, ordered = NULL, ci = 
       )
     )
 
-  # Item labels
+
+  # Item and value labels
   if (labels) {
     result <- labs_replace(result, "item", codebook(data, {{ cols }}), "item_name", "item_label")
     result <- labs_replace(result, "value", codebook(data, {{ cols }}))
@@ -697,7 +701,9 @@ plot_counts_items_grouped <- function(data, cols, cross, category = NULL, title 
       {{ cols }},
       names_to = "item",
       values_to = ".value_name"
-    )
+    ) |>
+    dplyr::mutate(item = factor(.data$item, levels=cols_names)) |>
+    dplyr::arrange(.data$item)
 
   # Add label column for category
   codebook_df <- codebook(data, {{ cols }})
@@ -805,11 +811,13 @@ plot_counts_items_grouped <- function(data, cols, cross, category = NULL, title 
 
   # Plot
   .plot_lines(
-  result,
-  title = title,
-  base = paste0("n=", base_n,
-                "; multiple responses possible",
-                "; values=", base_labels)
+    result,
+    title = title,
+    base = paste0(
+      "n=", base_n,
+      "; multiple responses possible",
+      "; values=", base_labels
+    )
   )
 }
 
@@ -974,7 +982,7 @@ plot_metrics_one <- function(data, col, ci = FALSE, box = FALSE, limits = NULL, 
   }
 
   mean_data <- tibble::tibble(
-    x = mean(dplyr::pull(data, {{col}} ), na.rm=T),
+    x = mean(dplyr::pull(data, {{col}} ), na.rm = TRUE),
     y = max_density / 2
   )
 
@@ -1254,13 +1262,18 @@ plot_metrics_items <- function(data, cols, ci = FALSE, box = FALSE, limits = NUL
   }
 
   # 2. Pivot items
+  cols_eval <- tidyselect::eval_select(expr = enquo(cols), data = data)
+  cols_names <- colnames(dplyr::select(data, tidyselect::all_of(cols_eval)))
+
   result <- data %>%
     labs_clear({{ cols }}) %>%
     tidyr::pivot_longer(
       {{ cols }},
       names_to = "item",
       values_to = "value"
-    )
+    ) |>
+    dplyr::mutate(item = factor(.data$item, levels=cols_names)) |>
+    dplyr::arrange(.data$item)
 
   # Replace item labels
   if (labels) {
@@ -1635,7 +1648,8 @@ plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", 
   if (labels)
     pl <- pl + ggplot2::labs(
       x = prefix1,
-      y = prefix2)
+      y = prefix2
+    )
 
   # Add title
   if (title == TRUE) {
@@ -1941,9 +1955,10 @@ plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", 
       pl <- pl +
         ggplot2::coord_flip(ylim = limits)
   }
-  else
+  else {
     pl <- pl +
-    ggplot2::coord_flip(ylim = c(0,1))
+      ggplot2::coord_flip(ylim = c(0,1))
+  }
 
   # Add title
   if (!is.null(title)) {
@@ -1958,7 +1973,6 @@ plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", 
   # Convert to vlkr_plot
   pl <- .attr_transfer(pl, data, "missings")
   .to_vlkr_plot(pl)
-
 }
 
 
@@ -2024,6 +2038,38 @@ plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", 
 
 }
 
+#' Helper function: scree plot
+#'
+#' @keywords internal
+#'
+#' @param data Dataframe with the factor or cluster number in the first column
+#'             and the metric in the second.
+#' @param k Provide one of the values in the first column to color points up to this value.
+#' @param lab_x Label of the x axis
+#' @param lab_y Label of the y axis
+#' @return A vlkr_plot object
+#' @importFrom rlang .data
+.plot_scree <- function(data, k = NULL, lab_x = NULL, lab_y = NULL) {
+
+  data$selected <- data[[1]] <= k
+
+  pl <- data %>%
+    ggplot2::ggplot(ggplot2::aes(
+      x = .data[[colnames(data)[1]]],
+      y = .data[[colnames(data)[2]]]
+    )) +
+    ggplot2::geom_line(alpha = VLKR_LINE_ALPHA, color = VLKR_COLOR_DISABLED) +
+    ggplot2::geom_point(ggplot2::aes(color = .data$selected), size=VLKR_POINT_SIZE, shape=VLKR_POINT_MEAN_SHAPE) +
+    ggplot2::scale_color_manual(values = c(VLKR_COLOR_DISABLED, vlkr_colors_discrete(1)), guide = "none") +
+    ggplot2::scale_x_continuous(breaks = data[[1]]) +
+    ggplot2::ggtitle(label = "Scree plot") +
+    ggplot2::labs(x = lab_x, y = lab_y)
+
+  .to_vlkr_plot(
+    pl, rows=10,
+    theme_options = list("axis.title.x" = TRUE, "axis.title.y" = TRUE)
+  )
+}
 
 #' Get the maximum density value in a density plot
 #'
