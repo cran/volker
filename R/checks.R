@@ -30,7 +30,6 @@ check_is_dataframe <- function(obj, msg = NULL, stopit = TRUE) {
     stop(msg, call. = FALSE)
   }
 
-
   check
 }
 
@@ -69,16 +68,109 @@ check_has_column <- function(data, cols, msg = NULL) {
   TRUE
 }
 
+#' Check whether a column selection is numeric
+#'
+#' @keywords internal
+#'
+#' @param data A data frame.
+#' @param cols A tidyselection of columns.
+#' @param msg A custom error message if the check fails.
+#' @return boolean Whether the columns are numeric.
+check_is_numeric <- function(data, cols, msg = NULL) {
+
+  cols <- tidyselect::eval_select(expr = rlang::enquo(cols), data = data)
+  vals <- dplyr::select(data, tidyselect::all_of(cols))
+  all_numeric <- all(sapply(vals, is.numeric))
+
+  if (!all_numeric) {
+    msg <- dplyr::coalesce(msg, paste0("The column selection contains non-numeric values. Did you forget to convert them?"))
+    stop(msg, call. = FALSE)
+  }
+
+  TRUE
+}
+
+#' Check whether a column selection is categorical
+#'
+#' @keywords internal
+#'
+#' @param data A data frame.
+#' @param cols A tidyselection of columns.
+#' @param msg A custom error message if the check fails.
+#' @return boolean Whether the columns are categorical
+check_is_categorical <- function(data, cols, msg = NULL) {
+
+  cols <- tidyselect::eval_select(expr = rlang::enquo(cols), data = data)
+  vals <- dplyr::select(data, tidyselect::all_of(cols))
+
+  all_nonfraction <- all(sapply(vals, function(column) {
+    !is.numeric(column) || all(column == floor(column), na.rm = TRUE)
+  }))
+
+  if (!all_nonfraction) {
+    msg <- dplyr::coalesce(msg, paste0("The column selection contains numeric values with commas. Did you mean to use a metric function?"))
+    stop(msg, call. = FALSE)
+  }
+
+  all_numeric <- all(sapply(vals, is.numeric))
+  categories <- unique(unlist(vals, use.names = FALSE))
+
+  max_categories <- getOption("vlkr.max.categories")
+  if (is.null(max_categories)) {
+    max_categories <- VLKR_MAX_CATEGORIES
+  }
+
+  n_categories <- length(categories)
+  if (all_numeric && (n_categories > max_categories)) {
+    msg <- dplyr::coalesce(
+      msg,
+      paste0(
+        "The column selection contains more than ",
+        max_categories," distinct numeric values.\n",
+        "Did you mean to use a metric function?\n",
+        "Otherwise you can increase the number of reported categories by ",
+        "`options(vlkr.max.categories=", n_categories ,")`."
+      )
+    )
+    stop(msg, call. = FALSE)
+  }
+
+  TRUE
+}
+
 #' Check whether a parameter value is from a valid set
 #'
 #' @keywords internal
 #'
 #' @param value A character value.
 #' @param allowed Allowed values.
+#' @param allownull Whether to allow NULL values.
+#' @param allowmultiple Whether to allow multiple values.
 #' @param stopit Whether to stop execution if the value is invalid.
 #' @param msg A custom error message if the check fails.
 #' @return logical whether method is valid.
-check_is_param <- function(value, allowed, stopit = TRUE, msg = NULL) {
+check_is_param <- function(value, allowed, allownull = FALSE, allowmultiple = FALSE, stopit = TRUE, msg = NULL) {
+
+  # Check for null
+  if (is.null(value)) {
+    if (allownull) {
+      return(TRUE)
+    }
+
+    if (stopit) {
+      arg <- deparse(substitute(value))
+      stop(paste0("The parameter '", arg, "' cannot be NULL."), call. = FALSE)
+    }
+    return(FALSE)
+  }
+
+  # Check for multiple values
+  if (!allowmultiple && length(value) > 1) {
+    if (stopit) {
+      stop(paste0("Only a single value is allowed, but multiple values were provided: ", paste(value, collapse = ", "), "."), call. = FALSE)
+    }
+    return(FALSE)
+  }
 
   check <- tryCatch(
     {
@@ -87,13 +179,19 @@ check_is_param <- function(value, allowed, stopit = TRUE, msg = NULL) {
     error = function(e) { FALSE }
   )
 
-  if (!check && stopit) {
-    msg <- dplyr::coalesce(
-      msg,
-      paste0("Check your parameters: The value '", value, "' is not supported. Supported values are ", paste0(allowed, collapse=", "), ".")
-    )
-    stop(msg, call. = FALSE)
+  # Check if all values are valid
+  if (!all(check)) {
+    if (stopit) {
+      invalid_values <- paste(value[!check], collapse = ", ")
+      msg <- dplyr::coalesce(
+        msg,
+        paste0("Check your parameters: The value(s) '", invalid_values, "' are not supported. Supported values are: ", paste0(allowed, collapse = ", "), ".")
+      )
+      stop(msg, call. = FALSE)
+    }
+    return(FALSE)
   }
 
-  check
+  TRUE
 }
+

@@ -2,27 +2,36 @@
 % Please edit documentation in R/labels.R
 \name{codebook}
 \alias{codebook}
-\title{Get variable labels from their comment attributes}
+\title{Get variable and value labels from a data set}
 \usage{
-codebook(data, cols)
+codebook(data, cols, values = TRUE)
 }
 \arguments{
 \item{data}{A tibble.}
 
 \item{cols}{A tidy variable selections to filter specific columns.}
+
+\item{values}{Whether to output values (TRUE) or only items (FALSE)}
 }
 \value{
 A tibble with the columns:
-- item_name: The column name.
-- item_group: First part of the column name, up to an underscore.
-- item_class: The last class value of an item (e.g. numeric, factor).
-- item_label: The comment attribute of the column.
-- value_name: In case a column has numeric attributes, the attribute names.
-- value_label: In case a column has numeric attributes or T/F-attributes,
+\itemize{
+\item item_name: The column name.
+\item item_group: First part of the column name, up to an underscore.
+\item item_class: The last class value of an item (e.g. numeric, factor).
+\item item_label: The comment attribute of the column.
+\item value_name: In case a column has numeric attributes, the attribute names.
+\item value_label: In case a column has numeric attributes or T/F-attributes,
 the attribute values.
 In case a column has a levels attribute, the levels.
 }
+}
 \description{
+Variable labels are extracted from their comment or label attribute.
+Variable values are extracted from factor levels, the labels attribute,
+numeric or boolean attributes.
+}
+\details{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 }
 \examples{

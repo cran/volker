@@ -35,6 +35,9 @@
 #'               Set to FALSE to output bare column names and values.
 #' - **numbers**: Set the numbers parameter to “n” (frequency), “p” (percentage) or c(“n”,“p”).
 #'                To prevent cluttering and overlaps, numbers are only plotted on bars larger than 5%.
+#' - **width**: When comparing groups by row of column percentages, by default,
+#'              the bar or column width reflects the number of cases.
+#'              You can disable this behavior by setting width to FALSE.
 #'
 #' `r lifecycle::badge("experimental")`
 #'
@@ -62,7 +65,7 @@ plot_counts <- function(data, cols, cross = NULL, metric = FALSE, clean = TRUE, 
 
   # 2. Clean
   if (clean) {
-    data <- data_clean(data)
+    data <- data_clean(data, clean)
   }
 
   # Find columns
@@ -167,7 +170,7 @@ plot_metrics <- function(data, cols, cross = NULL, metric = FALSE, clean = TRUE,
 
   # 2. Clean
   if (clean) {
-    data <- data_clean(data)
+    data <- data_clean(data, clean)
   }
 
   # Find columns
@@ -241,7 +244,7 @@ plot_metrics <- function(data, cols, cross = NULL, metric = FALSE, clean = TRUE,
 #' @export
 plot_counts_one <- function(data, col, category = NULL, ci = FALSE, limits = NULL, numbers = NULL, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ col }}, clean = clean)
+  data <- data_prepare(data, {{ col }}, cols.categorical = {{ col }}, clean = clean)
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -341,6 +344,9 @@ plot_counts_one <- function(data, col, category = NULL, ci = FALSE, limits = NUL
 #'             Plotting row or column percentages results in stacked bars that add up to 100%.
 #'             Whether you set rows or cols determines which variable is in the legend (fill color)
 #'             and which on the vertical scale.
+#' @param width By default, when setting the prop parameter to "rows" or "cols",
+#'              the bar or column width reflects the number of cases.
+#'              You can disable this behavior by setting width to FALSE.
 #' @param limits The scale limits, autoscaled by default.
 #'               Set to \code{c(0,100)} to make a 100 % plot.
 #' @param numbers The numbers to print on the bars: "n" (frequency), "p" (percentage) or both.
@@ -358,9 +364,12 @@ plot_counts_one <- function(data, col, category = NULL, ci = FALSE, limits = NUL
 #'
 #' @export
 #' @importFrom rlang .data
-plot_counts_one_grouped <- function(data, col, cross, category = NULL, prop = "total", limits = NULL, ordered = NULL, numbers = NULL, title = TRUE, labels = TRUE, clean = TRUE, ...) {
+plot_counts_one_grouped <- function(data, col, cross, category = NULL, prop = "total", width = NULL, limits = NULL, ordered = NULL, numbers = NULL, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ col }}, {{ cross }}, clean = clean)
+  data <- data_prepare(data, {{ col }}, {{ cross }}, cols.categorical = c({{ col }}, {{ cross }}), clean = clean)
+
+  check_is_param(prop, c("total", "rows", "cols"))
+  check_is_param(numbers, c("n", "p"), allowmultiple = TRUE, allownull = TRUE)
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -373,7 +382,9 @@ plot_counts_one_grouped <- function(data, col, cross, category = NULL, prop = "t
     col_temp <- col
     col <- cross
     cross <- col_temp
-    #stop("To display column proportions, swap the first and the grouping column. Then set the prop parameter to \"rows\".")
+    orientation = "vertical"
+  } else {
+    orientation = "horizontal"
   }
 
   # 3. Calculate data
@@ -381,14 +392,9 @@ plot_counts_one_grouped <- function(data, col, cross, category = NULL, prop = "t
     dplyr::count({{ col }}, {{ cross }})
 
   # 4. Set labels
-  # data <- data |>
-  #   dplyr::mutate(data, "{{ col_group }}" := as.factor({{ col_group }}))
-
   result <- result %>%
     dplyr::mutate(item = factor({{ col }})) |>
     dplyr::mutate(value = as.factor({{ cross }}))
-
-    #dplyr::mutate(value = factor({{ col }}, levels = categories))
 
   if ((prop == "rows") || (prop == "cols")) {
     result <- result %>%
@@ -399,6 +405,7 @@ plot_counts_one_grouped <- function(data, col, cross, category = NULL, prop = "t
     result <- result %>%
       dplyr::mutate(p = (.data$n / sum(.data$n)) * 100)
   }
+
 
   # Detect the scale (whether the categories are binary and direction)
   # TODO: make dry
@@ -417,9 +424,10 @@ plot_counts_one_grouped <- function(data, col, cross, category = NULL, prop = "t
 
   lastcategory <- ifelse(scale > 0, categories[1], categories[length(categories)])
 
-  #return(result)
   # Select numbers to print on the bars
   # ...omit the last category in scales, omit small bars
+
+
   result <- result %>%
     dplyr::mutate(
       .values = dplyr::case_when(
@@ -431,9 +439,29 @@ plot_counts_one_grouped <- function(data, col, cross, category = NULL, prop = "t
       )
     )
 
+  # Calculate bar / col width
+  if (!is_logical(width)) {
+    width <- (prop == "rows") || (prop == "cols")
+  }
+  if (width) {
+    result <- result %>%
+      dplyr::group_by(.data$item) %>%
+      dplyr::mutate(n_item = sum(.data$n)) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(p_item = (.data$n_item / sum(.data$n)) * 100) %>%
+      dplyr::mutate(.values = ifelse(.data$p_item < VLKR_LOWPERCENT, "", .data$.values))
+  }
+
   # Get title
   if (title == TRUE) {
-    title <- get_title(data, {{ col }})
+    title_col <- get_title(data,  {{ col }})
+    title_cross <- get_title(data,  {{ cross }})
+
+    title <-ifelse(
+      prop == "cols",
+      paste(title_cross, title_col, sep = " x "),
+      paste(title_col, title_cross, sep = " x ")
+    )
   } else if (title == FALSE) {
     title <- NULL
   }
@@ -448,6 +476,7 @@ plot_counts_one_grouped <- function(data, col, cross, category = NULL, prop = "t
     category = category,
     scale = scale,
     numbers = numbers,
+    orientation = orientation,
     base = paste0("n=", base_n),
     title = title
   )
@@ -491,7 +520,10 @@ plot_counts_one_grouped <- function(data, col, cross, category = NULL, prop = "t
 #' @importFrom rlang .data
 plot_counts_one_cor <- function(data, col, cross, category = NULL, prop = "total", limits = NULL, ordered = NULL, numbers = NULL, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ col }}, {{ cross }}, clean = clean)
+  data <- data_prepare(data, {{ col }}, {{ cross }}, cols.categorical = {{ col }}, cols.numeric = {{ cross }}, clean = clean)
+
+  check_is_param(prop, c("total", "rows", "cols"))
+  check_is_param(numbers, c("n", "p"), allowmultiple = TRUE, allownull = TRUE)
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -547,11 +579,13 @@ plot_counts_one_cor <- function(data, col, cross, category = NULL, prop = "total
 #' @importFrom rlang .data
 plot_counts_items <- function(data, cols, category = NULL, ordered = NULL, ci = FALSE, limits = NULL, numbers = NULL, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ cols }}, clean = clean)
+  data <- data_prepare(data, {{ cols }}, cols.categorical = {{ cols }}, clean = clean)
 
   if (nrow(data) == 0) {
     return(NULL)
   }
+
+  check_is_param(numbers, c("n", "p"), allowmultiple = TRUE, allownull = TRUE)
 
   # 2. Calculate data
   cols_eval <- tidyselect::eval_select(expr = enquo(cols), data = data)
@@ -681,7 +715,7 @@ plot_counts_items <- function(data, cols, category = NULL, ordered = NULL, ci = 
 #' @importFrom rlang .data
 plot_counts_items_grouped <- function(data, cols, cross, category = NULL, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ cols }}, {{ cross }}, clean = clean)
+  data <- data_prepare(data, {{ cols }}, {{ cross }}, cols.categorical = c({{ cols }}, {{ cross }}), clean = clean)
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -750,10 +784,7 @@ plot_counts_items_grouped <- function(data, cols, cross, category = NULL, title 
   # Get category labels if names are provided (e.g. for numeric values)
   base_labels <- base_category
   if (is.null(category) || all(base_labels %in% result$.value_name)) {
-    base_labels <- codebook_df %>%
-      dplyr::filter(.data$value_name %in% base_category) %>%
-      dplyr::pull(.data$value_label) %>%
-      unique()
+    base_labels <- get_labels(codebook_df, base_category)
   }
 
   # Recode
@@ -878,7 +909,7 @@ plot_counts_items_grouped_items <- function(data, cols, cross, title = TRUE, lab
 #' @importFrom rlang .data
 plot_counts_items_cor <- function(data, cols, cross, category = NULL, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ cols }}, {{ cross }}, clean = clean)
+  data <- data_prepare(data, {{ cols }}, {{ cross }}, cols.categorical = {{ cols }}, cols.numeric = {{ cross}}, clean = clean)
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -945,7 +976,7 @@ plot_counts_items_cor_items <- function(data, cols, cross,  title = TRUE, labels
 #' @importFrom rlang .data
 plot_metrics_one <- function(data, col, ci = FALSE, box = FALSE, limits = NULL, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ col }}, clean = clean)
+  data <- data_prepare(data, {{ col }}, cols.numeric = {{ col }}, clean = clean)
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -998,7 +1029,11 @@ plot_metrics_one <- function(data, col, ci = FALSE, box = FALSE, limits = NULL, 
 
   # Get title
   if (title == TRUE) {
-    title <- get_title(data, {{ col }})
+    if (labels == TRUE) {
+      title <- get_title(data, {{ col }})
+    } else {
+      title <- NULL
+    }
   } else if (title == FALSE) {
     title <- NULL
   }
@@ -1053,7 +1088,7 @@ plot_metrics_one <- function(data, col, ci = FALSE, box = FALSE, limits = NULL, 
 #' @importFrom rlang .data
 plot_metrics_one_grouped <- function(data, col, cross, ci = FALSE, box = FALSE, limits = NULL, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ col }}, {{ cross }}, clean = clean)
+  data <- data_prepare(data, {{ col }}, {{ cross }}, cols.categorical = {{ cross }}, cols.numeric = {{ col }}, clean = clean)
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -1088,6 +1123,11 @@ plot_metrics_one_grouped <- function(data, col, cross, ci = FALSE, box = FALSE, 
         dplyr::distinct(dplyr::across(tidyselect::all_of(c("value_name", "value_label"))))
     }
     scale <- prepare_scale(scale)
+  }
+
+  # Group labels
+  if (labels) {
+    data <- labs_replace(data,  {{ cross }}, codebook(data, {{ cross }}))
   }
 
 
@@ -1144,7 +1184,7 @@ plot_metrics_one_grouped <- function(data, col, cross, ci = FALSE, box = FALSE, 
 #' @importFrom rlang .data
 plot_metrics_one_cor <- function(data, col, cross, limits = NULL, log = FALSE, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ col }}, {{ cross }}, clean = clean)
+  data <- data_prepare(data, {{ col }}, {{ cross }}, cols.numeric = c({{ col }}, {{ cross }}), clean = clean)
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -1184,7 +1224,10 @@ plot_metrics_one_cor <- function(data, col, cross, limits = NULL, log = FALSE, t
       x=.data[[col1]],
       y=.data[[col2]],)
     ) +
-    ggplot2::geom_point(size=VLKR_POINT_SIZE, alpha=VLKR_POINT_ALPHA)
+    ggplot2::geom_point(
+      size = VLKR_POINT_SIZE,
+      alpha =  vlkr_alpha_interpolated(nrow(data))
+    )
 
   # Scale and limits
   if (log == TRUE) {
@@ -1255,7 +1298,7 @@ plot_metrics_one_cor <- function(data, col, cross, limits = NULL, log = FALSE, t
 #' @export
 plot_metrics_items <- function(data, cols, ci = FALSE, box = FALSE, limits = NULL, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ cols }}, clean = clean)
+  data <- data_prepare(data, {{ cols }}, cols.numeric = {{ cols }}, clean = clean)
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -1352,7 +1395,7 @@ plot_metrics_items <- function(data, cols, ci = FALSE, box = FALSE, limits = NUL
 #' @importFrom rlang .data
 plot_metrics_items_grouped <- function(data, cols, cross, limits = NULL, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ cols }}, {{ cross }}, clean = clean)
+  data <- data_prepare(data, {{ cols }}, {{ cross }}, cols.categorical = {{ cross }}, cols.numeric = {{ cols }}, clean = clean)
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -1389,11 +1432,9 @@ plot_metrics_items_grouped <- function(data, cols, cross, limits = NULL, title =
 
   # Replace item labels
   if (labels) {
-    result <- labs_replace(
-      result, "item",
-      codebook(data, {{ cols }}),
-      "item_name", "item_label"
-      )
+    result <- result %>%
+      labs_replace("item", codebook(data, {{ cols }}), "item_name", "item_label") %>%
+      labs_replace(".cross", codebook(data, {{ cross }}), "value_name", "value_label")
   }
 
   # Remove common item prefix
@@ -1459,7 +1500,7 @@ plot_metrics_items_grouped_items <- function(data, cols, cross, title = TRUE, la
 #' @param data A tibble containing item measures.
 #' @param cols Tidyselect item variables (e.g. starts_with...).
 #' @param cross The column to correlate.
-#' @param ci Whether to plot confidence intervals of the correlation coefficent.
+#' @param ci Whether to plot confidence intervals of the correlation coefficient.
 #' @param method The method of correlation calculation, pearson = Pearson's R, spearman = Spearman's rho.
 #' @param title If TRUE (default) shows a plot title derived from the column labels.
 #'              Disable the title with FALSE or provide a custom title as character value.
@@ -1477,7 +1518,9 @@ plot_metrics_items_grouped_items <- function(data, cols, cross, title = TRUE, la
 #'@importFrom rlang .data
 plot_metrics_items_cor <- function(data, cols, cross, ci = FALSE, method = "pearson", title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ cols }}, {{ cross }}, clean = clean)
+  data <- data_prepare(data, {{ cols }}, {{ cross }}, cols.numeric = c({{ cols }}, {{ cross }}), clean = clean)
+
+  check_is_param(method, c("pearson", "spearman"))
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -1584,7 +1627,9 @@ plot_metrics_items_cor <- function(data, cols, cross, ci = FALSE, method = "pear
 #'@importFrom rlang .data
 plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", numbers = FALSE, title = TRUE, labels = TRUE, clean = TRUE, ...) {
   # 1. Checks, clean, remove missings
-  data <- data_prepare(data, {{ cols }}, {{ cross }}, clean = clean)
+  data <- data_prepare(data, {{ cols }}, {{ cross }}, cols.numeric = c({{ cols }}, {{ cross }}), clean = clean)
+
+  check_is_param(method, c("pearson", "spearman"))
 
   if (nrow(data) == 0) {
     return(NULL)
@@ -1697,17 +1742,19 @@ plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", 
 #'
 #' @keywords internal
 #'
-#' @param data Dataframe with the columns item, value, p, n.
-#' @param category Category for filtering the dataframe.
+#' @param data Data frame with the columns item, value, p, n and optionally p_item.
+#'             If p_item is provided, the column width is generated according the p_item value, resulting in a mosaic plot.
+#' @param category Category for filtering the data frame.
 #' @param ci Whether to plot error bars for 95% confidence intervals. Provide the columns ci.low and ci.high in data.
 #' @param scale Direction of the scale: 0 = no direction for categories,
 #'              -1 = descending or 1 = ascending values.
 #' @param numbers The values to print on the bars: "n" (frequency), "p" (percentage) or both.
-#' @param title The plot title as character or NULL.
+#' @param orientation Whether to show bars (horizontal) or columns (vertical)
 #' @param base The plot base as character or NULL.
+#' @param title The plot title as character or NULL.
 #' @return A ggplot object.
 #' @importFrom rlang .data
-.plot_bars <- function(data, category = NULL, ci = FALSE, scale = NULL, limits = NULL, numbers = NULL, base = NULL, title = NULL) {
+.plot_bars <- function(data, category = NULL, ci = FALSE, scale = NULL, limits = NULL, numbers = NULL, orientation = "horizontal", base = NULL, title = NULL) {
 
   data_missings <- attr(data, "missings", exact = TRUE)
 
@@ -1726,9 +1773,43 @@ plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", 
       )
   }
 
-  pl <- data %>%
-    ggplot2::ggplot(ggplot2::aes(x = .data$item, y = .data$p / 100, fill = .data$value, group = .data$value)) +
-    ggplot2::geom_col()
+  # Reverse stacked columns
+  if (orientation == "vertical") {
+    data <- data %>%
+      dplyr::mutate(
+        value = factor(.data$value, levels = rev(levels(.data$value)))
+      )
+  }
+
+  # Calculate bar width
+  width <- "p_item" %in% colnames(data)
+  if (width) {
+    pl <- data %>%
+      dplyr::mutate(width = .data$p_item / max(.data$p_item) * 0.95) |>
+      ggplot2::ggplot(ggplot2::aes(
+        x = .data$item,
+        y = .data$p / 100,
+        fill = .data$value,
+        group = .data$value,
+        width = .data$width
+      )) +
+      ggplot2::geom_col()
+
+  }
+
+  # Equal bars
+  else {
+    pl <- data %>%
+      ggplot2::ggplot(ggplot2::aes(
+        x = .data$item,
+        y = .data$p / 100,
+        fill = .data$value,
+        group = .data$value
+      )) +
+      ggplot2::geom_col()
+  }
+
+  pl <- .to_vlkr_plot(pl, theme_options = list(axis.text.y = !all(data$item == "TRUE")))
 
   if (ci && !is.null(category)) {
     pl <- pl +
@@ -1738,14 +1819,33 @@ plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", 
       )
   }
 
-  pl <- pl +
-    ggplot2::scale_y_continuous(labels = scales::percent, limits = limits) +
-    ggplot2::scale_x_discrete(
-      labels = scales::label_wrap(dplyr::coalesce(getOption("vlkr.wrap.labels"), VLKR_PLOT_LABELWRAP)),
-      limits = rev
-    ) +
-    ggplot2::ylab("Share in percent") +
-    ggplot2::coord_flip()
+
+  if (orientation == "horizontal") {
+    pl <- pl +
+      ggplot2::scale_y_continuous(labels = scales::percent, limits = limits) +
+      ggplot2::scale_x_discrete(
+        labels = scales::label_wrap(dplyr::coalesce(getOption("vlkr.wrap.labels"), VLKR_PLOT_LABELWRAP)),
+        limits = rev
+      ) +
+      ggplot2::ylab("Share in percent") +
+      ggplot2::coord_flip()
+  }
+  else {
+    angle <- get_angle(levels(data$item))
+
+    pl <- pl +
+      ggplot2::scale_y_continuous(labels = scales::percent, limits = limits) +
+      ggplot2::scale_x_discrete(labels = \(labels) trunc_labels(labels)) +
+      ggplot2::ylab("Share in percent")+
+      ggplot2::theme(
+        axis.text.x = ggplot2::element_text(
+          angle = angle,
+          hjust = ifelse(angle > 0, 1, 0.5),
+          size = ggplot2::theme_get()$axis.text.y$size,
+          color = ggplot2::theme_get()$axis.text.y$color
+      )
+    )
+  }
 
   # Select scales:
   # - Simplify binary plots
@@ -1765,13 +1865,13 @@ plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", 
     pl <- pl +
       ggplot2::scale_fill_manual(
         values = vlkr_colors_sequential(length(levels(as.factor(data$value)))),
-        guide = ggplot2::guide_legend(reverse = TRUE)
+        guide = ggplot2::guide_legend(reverse = orientation == "horizontal")
       )
   } else {
     pl <- pl +
       ggplot2::scale_fill_manual(
         values = vlkr_colors_discrete(length(levels(as.factor(data$value)))),
-        guide = ggplot2::guide_legend(reverse = TRUE)
+        guide = ggplot2::guide_legend(reverse = orientation == "horizontal")
       )
   }
 
@@ -1839,7 +1939,12 @@ plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", 
       ggplot2::stat_summary(fun = mean, geom="line")
   }
 
-  pl <- pl + ggplot2::stat_summary(fun = mean, geom="point", size=4, shape=18)
+  pl <- pl + ggplot2::stat_summary(
+    fun = mean,
+    geom = "point",
+    size = VLKR_POINT_MEAN_SIZE,
+    shape = VLKR_POINT_MEAN_SHAPE
+  )
 
 
   # Add limits
@@ -2003,12 +2108,12 @@ plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", 
       color = vlkr_colors_discrete(1)
       )
 
-  if (ci && ("low" %in% colnames(data)) && ("low" %in% colnames(data))) {
+  if (ci && ("low" %in% colnames(data)) && ("high" %in% colnames(data))) {
     pl <- pl +
       ggplot2::geom_errorbar(
         ggplot2::aes(ymin = .data$low, ymax = .data$high),
-        orientation ="x",
-        width=0.2,
+        orientation = "x",
+        width= 0.2,
         colour = VLKR_COLOR_CI)
   }
 
@@ -2148,12 +2253,19 @@ plot_metrics_items_cor_items <- function(data, cols, cross, method = "pearson", 
   if (is.null(rows)) {
     if ("CoordFlip" %in% class(pl$coordinates)) {
       labels <- plot_data$layout$panel_scales_x[[1]]$range$range
+      scale <- 1
     } else {
-      labels <- plot_data$layout$panel_scales_y[[1]]$range$range
+      legend <- unique(plot_data$data[[1]]$group)
+      geom <- class(pl$layers[[1]]$geom)[[1]]
+      if (geom == "GeomCol") {
+        labels <- legend
+        scale <- 2.5
+      } else {
+        labels <- plot_data$layout$panel_scales_y[[1]]$range$range
+        scale <- 1
+      }
     }
-    legend <- unique(plot_data$data[[1]]$group)
-
-    rows <- max(length(labels), (length(legend) / 3) * 2)
+    rows <- max(length(labels) * scale, (length(legend) / 3) * 2)
   }
 
   if (is.null(maxlab)) {
@@ -2470,3 +2582,21 @@ vlkr_colors_polarized <- function(n = NULL) {
   }
   colors
 }
+
+
+#' Interpolate an alpha value based on case numbers
+#'
+#' @keywords internal
+#'
+#' @param n Number of cases
+#' @param n_min The case number where the minimum alpha value starts
+#' @param n_max The case number where the maximum alpha value ends
+#' @param alpha_min The minimum alpha value
+#' @param alpha_max The maximum alpha value
+#' @return A value between the minimum and the maximum alpha value
+vlkr_alpha_interpolated <- function(n, n_min = 20, n_max = 100, alpha_min = VLKR_POINT_ALPHA, alpha_max = 1) {
+  n <- max(n_min, min(n, n_max))
+  alpha <- alpha_max + (n - n_min) * (alpha_min - alpha_max) / (n_max - n_min)
+  return(alpha)
+}
+

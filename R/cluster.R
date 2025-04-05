@@ -193,9 +193,8 @@ cluster_plot <- function(data, cols, newcol = NULL, k = NULL, method = NULL, lab
 #' @export
 #' @importFrom rlang .data
 add_clusters <- function(data, cols, newcol = NULL, k = 2, method = "kmeans", clean = TRUE) {
-
   # Check, clean, remove missings
-  data <- data_prepare(data, {{ cols }}, clean = clean)
+  data <- data_prepare(data, {{ cols }}, cols.numeric = {{ cols }}, clean = clean)
 
   # select columns
   items <- data %>%
@@ -233,7 +232,7 @@ add_clusters <- function(data, cols, newcol = NULL, k = 2, method = "kmeans", cl
   fit_wss <- c()
   items <- scale(items)
   for (i in k) {
-    fit <- stats::kmeans(items, centers = i)
+    fit <- stats::kmeans(items, centers = i, iter.max = 10)
     fitlist[[i]] <- fit
     fit_wss <- c(fit_wss, fit$tot.withinss)
   }

@@ -7,7 +7,7 @@
 #' Override with \code{options(vlkr.na.levels=c("Not answered"))}.
 #'
 #' @keywords internal
-VLKR_NA_LEVELS <- c("[NA] nicht beantwortet", "[NA] keine Angabe", "[no answer]")
+VLKR_NA_LEVELS <- c("[NA] nicht beantwortet", "[NA] keine Angabe", "[no answer]", "keine Angabe")
 
 #' Numbers to remove from vectors
 #'
@@ -16,16 +16,26 @@ VLKR_NA_LEVELS <- c("[NA] nicht beantwortet", "[NA] keine Angabe", "[no answer]"
 #' @keywords internal
 VLKR_NA_NUMBERS <- c(-9, -2, -1)
 
+#' Maximum number of distinct values to determine whether a column selection
+#' contains only categorical values
+#'
+#' Override with \code{options(vlkr.max.categories=10)}.
+#'
+#' @keywords internal
+VLKR_MAX_CATEGORIES <- 20
+
 #' Get configured na numbers
 #'
 #' Retrieves values either from the option or from the constant.
 #'
 #' @keywords internal
+#'
+#' @param default The default na numbers, if not explicitly provided by na.numbers or the options.
 #' return A vector with numbers that should be treated as NAs
-cfg_get_na_numbers <- function() {
+cfg_get_na_numbers <- function(default = VLKR_NA_NUMBERS) {
   na.numbers <- getOption("vlkr.na.numbers")
   if (is.null(na.numbers)) {
-    na.numbers <- VLKR_NA_NUMBERS
+    na.numbers <- default
   } else if (all(na.numbers == FALSE)) {
     na.numbers <- c()
   }
@@ -85,11 +95,15 @@ VLKR_PLOT_TITLEROWS <- 2
 #' Override with \code{options(vlkr.wrap.labels=20)}.
 #' Override with \code{options(vlkr.wrap.legend=10)}.
 #' Override with \code{options(vlkr.wrap.scale=10)}.
+#' Override with \code{options(vlkr.angle.value=30)}.
+#' Override with \code{options(vlkr.angle.threshold=10)}.
 #'
 #' @keywords internal
 VLKR_PLOT_LABELWRAP <- 40
 VLKR_PLOT_LEGENDWRAP <- 20
 VLKR_PLOT_SCALEWRAP <- 10
+VLKR_PLOT_ANGLE_VALUE <- 45
+VLKR_PLOT_ANGLE_THRESHOLD <- 20
 
 #' Word wrap separators
 #'
@@ -119,3 +133,4 @@ VLKR_LINE_ALPHA <- 0.6
 #'
 #' @keywords internal
 VLKR_POINT_SIZE <-  3
+VLKR_POINT_MEAN_SIZE <- 4

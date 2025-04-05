@@ -1,57 +1,102 @@
-#' Get variable labels from their comment attributes
+#' Get variable and value labels from a data set
+#'
+#' Variable labels are extracted from their comment or label attribute.
+#' Variable values are extracted from factor levels, the labels attribute,
+#' numeric or boolean attributes.
 #'
 #' `r lifecycle::badge("experimental")`
 #'
 #' @param data A tibble.
 #' @param cols A tidy variable selections to filter specific columns.
+#' @param values Whether to output values (TRUE) or only items (FALSE)
 #' @return A tibble with the columns:
-#'        - item_name: The column name.
-#'        - item_group: First part of the column name, up to an underscore.
-#'        - item_class: The last class value of an item (e.g. numeric, factor).
-#'        - item_label: The comment attribute of the column.
-#'        - value_name: In case a column has numeric attributes, the attribute names.
-#'        - value_label: In case a column has numeric attributes or T/F-attributes,
-#'                       the attribute values.
-#'                       In case a column has a levels attribute, the levels.
+#'
+#' - item_name: The column name.
+#' - item_group: First part of the column name, up to an underscore.
+#' - item_class: The last class value of an item (e.g. numeric, factor).
+#' - item_label: The comment attribute of the column.
+#' - value_name: In case a column has numeric attributes, the attribute names.
+#' - value_label: In case a column has numeric attributes or T/F-attributes,
+#'   the attribute values.
+#'   In case a column has a levels attribute, the levels.
+#'
 #' @examples
 #' volker::codebook(volker::chatgpt)
 #' @importFrom rlang .data
 #' @export
-codebook <- function(data, cols) {
+codebook <- function(data, cols, values = TRUE) {
   if (!missing(cols)) {
     data <- dplyr::select(data, {{ cols }})
   }
 
   # Get column classes
-  #item_classes <- sapply(data, attr, "class", simplify = FALSE)
   item_classes <- sapply(data, class, simplify = FALSE)
   item_classes <- ifelse(sapply(item_classes, is.null), NA, item_classes)
 
-  # Get column comments
+  # Get column comments or labels
   item_comments <- sapply(data, attr, "comment", simplify = FALSE)
   item_comments <- ifelse(sapply(item_comments, is.null), NA, item_comments)
+  item_labels <- sapply(data, attr, "label", simplify = FALSE)
+  item_labels <- ifelse(sapply(item_labels, is.null), NA, item_labels)
 
   # Construct item label and value label dataframe
   labels <- dplyr::tibble(
     item_name = colnames(data),
     item_class = item_classes,
-    item_label = item_comments,
+    item_label = dplyr::coalesce(item_comments, item_labels),
     value_label = lapply(data, attributes)
   ) %>%
     dplyr::mutate(item_label = as.character(sapply(.data$item_label, function(x) ifelse(is.null(x), NA, x)))) %>%
     dplyr::mutate(item_label = ifelse(is.na(.data$item_label), .data$item_name, .data$item_label)) %>%
     dplyr::mutate(item_group = sub("_.*", "", .data$item_name)) |>
-    dplyr::mutate(item_class = as.character(sapply(.data$item_class, function(x) ifelse(length(x) > 1, x[[length(x)]], x)))) %>%
+    dplyr::mutate(item_class = as.character(sapply(.data$item_class, function(x) ifelse(length(x) > 1, x[[length(x)]], x))))
+
+
+  # Detect groups
+  # TODO: revise group detection. Will be used for index calculation.
+  # groups <- labels %>%
+  #   dplyr::distinct(item_name) %>%
+  #   dplyr::mutate(
+  #     item_prefix = get_prefix(item_name),
+  #     item_postfix = stringr::str_sub(item_name, stringr::str_length(item_prefix) + 1)
+  #   ) %>%
+  #   dplyr::arrange(item_postfix) %>%
+  #   dplyr::mutate(
+  #     item_next = dplyr::lead(item_postfix),
+  #     item_prev = dplyr::lag(item_postfix)
+  #   ) %>%
+  #   dplyr::rowwise() %>%
+  #   dplyr::mutate(
+  #     item_infix = ifelse(!is.na(item_next),get_prefix(c(item_postfix, item_next)), ""),
+  #     item_infix = ifelse(item_infix == "",get_prefix(c(item_postfix, item_prev)), item_infix),
+  #   ) %>%
+  #   dplyr::ungroup() %>%
+  #   dplyr::mutate(item_postfix = stringr::str_sub(item_postfix, stringr::str_length(item_infix) + 1)) %>%
+  #   dplyr::select(item_name, item_prefix, item_infix, item_postfix)
+  #
+  # labels <- dplyr::left_join(labels, groups, by="item_name")
+
+  # Return item overview
+  if (!values) {
+    labels <- labels %>%
+      dplyr::select(tidyselect::all_of(c("item_name", "item_group", "item_class", "item_label")))
+
+    return(labels)
+  }
+
+  # Extract value names
+  labels <- labels %>%
     dplyr::select(tidyselect::all_of(c("item_name", "item_group", "item_class", "item_label", "value_label"))) %>%
     tidyr::unnest_longer(tidyselect::all_of("value_label"), keep_empty = TRUE)
+
 
   if ("value_label_id" %in% colnames(labels)) {
 
     # Get items with a labels attribute
     labels_attr <- labels %>%
-      # dplyr::rename(value_name = value_label_id) %>%
       dplyr::filter(.data$value_label_id == "labels") %>%
       dplyr::select(tidyselect::all_of(c("item_group", "item_class", "item_name", "item_label", "value_label"))) |>
+      dplyr::mutate(value_label = lapply(.data$value_label, named.to.list)) %>%
       tidyr::unnest_longer(tidyselect::all_of("value_label"), indices_to = "value_name", values_to = "value_label") |>
       dplyr::mutate(
         value_name = as.character(.data$value_name),
@@ -100,29 +145,6 @@ codebook <- function(data, cols) {
     labels$value_name <- NA
   }
 
-  # Detect groups
-  # TODO: revise group detection. Will be used for index calculation.
-  # groups <- labels %>%
-  #   dplyr::distinct(item_name) %>%
-  #   dplyr::mutate(
-  #     item_prefix = get_prefix(item_name),
-  #     item_postfix = stringr::str_sub(item_name, stringr::str_length(item_prefix) + 1)
-  #   ) %>%
-  #   dplyr::arrange(item_postfix) %>%
-  #   dplyr::mutate(
-  #     item_next = dplyr::lead(item_postfix),
-  #     item_prev = dplyr::lag(item_postfix)
-  #   ) %>%
-  #   dplyr::rowwise() %>%
-  #   dplyr::mutate(
-  #     item_infix = ifelse(!is.na(item_next),get_prefix(c(item_postfix, item_next)), ""),
-  #     item_infix = ifelse(item_infix == "",get_prefix(c(item_postfix, item_prev)), item_infix),
-  #   ) %>%
-  #   dplyr::ungroup() %>%
-  #   dplyr::mutate(item_postfix = stringr::str_sub(item_postfix, stringr::str_length(item_infix) + 1)) %>%
-  #   dplyr::select(item_name, item_prefix, item_infix, item_postfix)
-  #
-  # labels <- dplyr::left_join(labels, groups, by="item_name")
   labels
 }
 
@@ -261,7 +283,7 @@ labs_apply <- function(data, codes = NULL, cols = NULL, items = TRUE, values = T
     items <- as.list(items)
   }
 
-  if (!is.null(values) &&is.vector(values) && !is.null(names(values))) {
+  if (!is.null(values) && is.vector(values) && !is.null(names(values))) {
     values <- as.list(values)
   }
 
@@ -291,7 +313,6 @@ labs_apply <- function(data, codes = NULL, cols = NULL, items = TRUE, values = T
   if (is.null(codes) || (nrow(codes) ==0)) {
     return (data)
   }
-
 
   # Fix column names
   if (!"item_name" %in% colnames(codes) && (colnames(codes)[1] != "value_name")) {
@@ -340,7 +361,6 @@ labs_apply <- function(data, codes = NULL, cols = NULL, items = TRUE, values = T
           dplyr::filter(.data$item_name == col)
       }
 
-
       value_rows <- value_rows |>
         dplyr::select(tidyselect::any_of(c("value_name", "value_label","item_class"))) |>
         dplyr::filter(
@@ -370,8 +390,10 @@ labs_apply <- function(data, codes = NULL, cols = NULL, items = TRUE, values = T
           }
         }
 
-        # Labels with numeric and boolean names are stored directly as attributes in the column (label_nested is FALSE)
-        # All other labels are stored as a list in the "label" attribute (label_nested is TRUE)
+        # Labels with numeric and boolean names are stored directly as attributes
+        # in the column (label_nested is FALSE).
+        # All other labels are stored as a list in the "labels" attribute
+        # (label_nested is TRUE).
         else {
 
           label_attr <- list()
@@ -389,15 +411,24 @@ labs_apply <- function(data, codes = NULL, cols = NULL, items = TRUE, values = T
           }
 
           if (length(label_attr) > 0) {
-            if (!label_nested) {
-              attr(data[[col]], "labels") <- NULL
+
+            # Clear labels
+            attr(data[[col]], "labels") <- NULL
+            label_old <- attributes(data[[col]])
+            label_old <- label_old[which(grepl("^-?[0-9TF]+$", names(label_old)))]
+            for (value_name in label_old) {
+              attr(data[[col]], as.character(value_name)) <- NULL
+            }
+
+            # Set labels
+            if (label_nested) {
+              attr(data[[col]], "labels") <- label_attr
+            } else {
               for (value_name in names(label_attr)) {
                 value_label <- label_attr[[value_name]]
                 attr(data[[col]], as.character(value_name)) <- NULL
                 attr(data[[col]], as.character(value_name)) <- value_label
               }
-            } else {
-              attr(data[[col]], "labels") <- label_attr
             }
           }
         }
@@ -712,6 +743,27 @@ get_direction <- function(data, cols, extract = TRUE) {
   categories_scale
 }
 
+#' Get the labels of values from a codebook
+#'
+#' @keywords internal
+#'
+#' @param codes The codebook as it results from the codebook() function
+#' @param values A vector of labels
+#' @return The labels. If the values are not present in the codebook, returns the values.
+#' @importFrom rlang .data
+get_labels <- function(codes, values) {
+
+  labels <- codes %>%
+    dplyr::filter(.data$value_name %in% values) %>%
+    dplyr::pull(.data$value_label) %>%
+    unique()
+
+  if (length(labels) == 0) {
+    labels <- values
+  }
+
+  labels
+}
 
 #' Get the common prefix of character values
 #'
@@ -941,11 +993,15 @@ label_scale <- function(x, scale) {
 #'
 #' @param labels Vector of labels to check. The values are converted to characters.
 #' @param threshold Length threshold beyond which the angle is applied.
-#'                  Default is 20.
+#'                  Default is 20. Override with \code{options(vlkr.angle.threshold=10)}.
 #' @param angle The angle to apply if any label exceeds the threshold.
-#'            Default is 45.
+#'            Default is 45. Override with \code{options(vlkr.angle.value=30)}.
 #' @return A single angle value.
-get_angle <- function(labels, threshold = 20, angle = 45) {
+get_angle <- function(labels, threshold = VLKR_PLOT_ANGLE_THRESHOLD, angle = VLKR_PLOT_ANGLE_VALUE) {
+
+  threshold <- dplyr::coalesce(getOption("vlkr.angle.threshold"), threshold)
+  angle <- dplyr::coalesce(getOption("vlkr.angle.value"), angle)
+
   # Check if any label exceeds the threshold and return the angle accordingly
   if (any(nchar(as.character(labels)) > threshold)) {
     return(angle)

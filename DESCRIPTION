@@ -2,8 +2,8 @@ Package: volker
 Type: Package
 Title: High-Level Functions for Tabulating, Charting and Reporting
         Survey Data
-Version: 3.0.0
-Date: 2024-12-11
+Version: 3.1.0
+Date: 2025-04-05
 Authors@R: 
   c(
     person("Jakob", "Jünger", email = "jakob.juenger@uni-muenster.de", role = c("aut", "cre", "cph"),
@@ -27,16 +27,16 @@ LazyData: true
 Imports: stats, utils, rlang, lifecycle, tibble, dplyr, tidyr,
         tidyselect, ggplot2 (>= 2.2.1), scales, base64enc, purrr,
         magrittr, skimr, broom, knitr, kableExtra, rmarkdown, psych,
-        effectsize, car
+        car, effectsize, heplots
 Depends: R (>= 4.2)
 Suggests: tidyverse, remotes, usethis, testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2024-12-11 16:43:15 UTC; Jakob
+Packaged: 2025-04-05 20:30:45 UTC; Jakob
 Author: Jakob Jünger [aut, cre, cph] (<https://orcid.org/0000-0003-1860-6695>),
   Henrieke Kotthoff [aut, ctb],
   Chantal Gärtner [ctb] (<https://orcid.org/0000-0002-3653-6013>)
 Maintainer: Jakob Jünger <jakob.juenger@uni-muenster.de>
 Repository: CRAN
-Date/Publication: 2024-12-11 17:30:02 UTC
+Date/Publication: 2025-04-05 20:50:02 UTC

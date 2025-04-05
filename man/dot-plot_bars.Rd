@@ -11,14 +11,16 @@
   scale = NULL,
   limits = NULL,
   numbers = NULL,
+  orientation = "horizontal",
   base = NULL,
   title = NULL
 )
 }
 \arguments{
-\item{data}{Dataframe with the columns item, value, p, n.}
+\item{data}{Data frame with the columns item, value, p, n and optionally p_item.
+If p_item is provided, the column width is generated according the p_item value, resulting in a mosaic plot.}
 
-\item{category}{Category for filtering the dataframe.}
+\item{category}{Category for filtering the data frame.}
 
 \item{ci}{Whether to plot error bars for 95\% confidence intervals. Provide the columns ci.low and ci.high in data.}
 
@@ -26,6 +28,8 @@
 -1 = descending or 1 = ascending values.}
 
 \item{numbers}{The values to print on the bars: "n" (frequency), "p" (percentage) or both.}
+
+\item{orientation}{Whether to show bars (horizontal) or columns (vertical)}
 
 \item{base}{The plot base as character or NULL.}
 

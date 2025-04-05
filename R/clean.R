@@ -7,7 +7,9 @@
 #' @param data Data frame to be prepared.
 #' @param cols The first column selection.
 #' @param cross The second column selection.
-#' @param reverse A tidy selection of columns with reversed codings.
+#' @param cols.categorical A tidy selection of columns to be checked for categorical values.
+#' @param cols.numeric A tidy selection of columns to be converted to numeric values.
+#' @param cols.reverse A tidy selection of columns with reversed codings.
 #' @param clean Whether to clean data using \link{data_clean}.
 #'
 #' @return Prepared data frame.
@@ -17,7 +19,7 @@
 #'
 #' @export
 #'
-data_prepare <- function(data, cols, cross, reverse, clean = TRUE) {
+data_prepare <- function(data, cols, cross, cols.categorical, cols.numeric, cols.reverse, clean = TRUE) {
   # 1. Checks
   check_is_dataframe(data)
   check_has_column(data, {{ cols }})
@@ -31,19 +33,30 @@ data_prepare <- function(data, cols, cross, reverse, clean = TRUE) {
     data <- data_clean(data, clean)
   }
 
-  # 3. Remove missings
+  # 3. Convert to numeric
+  if (!missing(cols.numeric)) {
+    data <- data_num(data, {{ cols.numeric }})
+  }
+
+  # 4. Remove missings
   if (!missing(cross)) {
     data <- data_rm_missings(data, c({{ cols }}, {{ cross }}))
   } else {
     data <- data_rm_missings(data, {{ cols }})
   }
 
-  # 4. Reverse items
-  if (!missing(reverse)) {
-    data <- data_rev(data, reverse)
+  # 5. Reverse items
+  if (!missing(cols.reverse)) {
+    data <- data_rev(data, {{ cols.reverse }})
   }
 
-  # # 4. Remove negatives
+  # 6. Check categorical values
+  if (!missing(cols.categorical)) {
+    check_is_categorical(data, {{ cols.categorical }})
+    data <- data_cat(data, {{ cols.categorical }})
+  }
+
+  # # 6. Remove negatives
   # if (isTRUE(rm.negatives) & !missing(cross)) {
   #   data <- data_rm_negatives(data, c({{ cols }}, {{ cross }}))
   # }
@@ -54,10 +67,8 @@ data_prepare <- function(data, cols, cross, reverse, clean = TRUE) {
   #   data <- data_rm_negatives(data, {{ cols }})
   # }
 
-  if (nrow(data) == 0) {
-     message("The dataset is empty, check your values.")
-  }
-
+  check_is_dataframe(data)
+  attr(data, "cases") <- nrow(data)
   data
 }
 
@@ -72,14 +83,14 @@ data_prepare <- function(data, cols, cross, reverse, clean = TRUE) {
 #' @keywords internal
 #'
 #' @param data Data frame.
-#' @param plan The cleaning plan. By now, only "sosci" is supported. See \link{data_clean_sosci}.
+#' @param plan The cleaning plan. By now, only "default" is supported. See \link{data_clean_default}.
 #' @param ... Other parameters passed to the appropriate cleaning function.
 #' @return Cleaned data frame with vlkr_df class.
 #' @examples
 #' ds <- volker::chatgpt
 #' ds <- data_clean(ds)
 #' @export
-data_clean <- function(data, plan = "sosci", ...) {
+data_clean <- function(data, plan = "default", ...) {
 
   # Prepare only once
   if ("vlkr_df" %in% class(data)) {
@@ -87,19 +98,19 @@ data_clean <- function(data, plan = "sosci", ...) {
   }
 
   if (isTRUE(plan)) {
-    plan <- "sosci"
+    plan <- "default"
   }
 
-  if (plan == "sosci") {
-    data <- data_clean_sosci(data,...)
+  if (plan == "default") {
+    data <- data_clean_default(data,...)
   }
 
   .to_vlkr_df(data)
 }
 
-#' Prepare data originating from SoSci Survey
+#' Prepare data originating from SoSci Survey or SPSS
 #'
-#' Prepares SoSci Survey data:
+#' Preparation steps:
 #' - Remove the avector class from all columns
 #'   (comes from SoSci and prevents combining vectors)
 #' - Recode residual factor values to NA (e.g. "[NA] nicht beantwortet")
@@ -122,9 +133,9 @@ data_clean <- function(data, plan = "sosci", ...) {
 #' @return Data frame with vlkr_df class (the class is used to prevent double preparation).
 #' @examples
 #' ds <- volker::chatgpt
-#' ds <- data_clean_sosci(ds)
+#' ds <- data_clean_default(ds)
 #' @export
-data_clean_sosci <- function(data, remove.na.levels = TRUE, remove.na.numbers = TRUE) {
+data_clean_default <- function(data, remove.na.levels = TRUE, remove.na.numbers = TRUE) {
 
   # Prepare only once
   if ("vlkr_df" %in% class(data)) {
@@ -143,13 +154,13 @@ data_clean_sosci <- function(data, remove.na.levels = TRUE, remove.na.numbers = 
   data <- labs_store(data)
 
   # Remove residual levels such as "[NA] nicht beantwortet"
-  if (remove.na.levels != FALSE) {
+  if ((length(remove.na.levels) > 0) | any(remove.na.levels != FALSE)) {
     data <- data_rm_na_levels(data, remove.na.levels)
   }
 
   # Remove residual numbers such as -9
   # (but only if they are listed in the attributes of a column)
-  if (remove.na.numbers != FALSE) {
+  if ((length(remove.na.numbers) > 0) | any(remove.na.numbers != FALSE)) {
     data <- data_rm_na_numbers(data, remove.na.numbers)
   }
 
@@ -174,7 +185,7 @@ data_rm_missings <- function(data, cols) {
   if (cases > 0) {
     data <- cleaned
     colnames <- rlang::as_label(rlang::enquo(cols))
-    data <- .attr_insert(data, "missings", "na", list("cols" = colnames, "n"=cases))
+    data <- .attr_insert(data, "missings", "na", list("cols" = colnames, "n" = cases))
   }
 
   data
@@ -201,7 +212,7 @@ data_rm_zeros <- function(data, cols) {
   if (cases > 0) {
     data <- cleaned
     colnames <- rlang::as_label(rlang::enquo(cols))
-    data <- .attr_insert(data, "missings", "zero", list("cols" = colnames, "n"=cases))
+    data <- .attr_insert(data, "missings", "zero", list("cols" = colnames, "n" = cases))
   }
 
   data
@@ -244,12 +255,13 @@ data_rm_negatives <- function(data, cols) {
 #'                  Either a character vector with residual values or TRUE to use defaults in \link{VLKR_NA_LEVELS}.
 #'                  You can define default residual levels by setting the global option vlkr.na.levels
 #'                  (e.g. `options(vlkr.na.levels=c("Not answered"))`).
+#' @param default The default na levels, if not explicitly provided by na.levels or the options.
 #' @return Data frame
-data_rm_na_levels <- function(data, na.levels = TRUE) {
+data_rm_na_levels <- function(data, na.levels = TRUE, default = VLKR_NA_LEVELS) {
   if (is.logical(na.levels)) {
     na.levels <- getOption("vlkr.na.levels")
     if (is.null(na.levels)) {
-      na.levels <- VLKR_NA_LEVELS
+      na.levels <- default
     } else if (all(na.levels == FALSE)) {
       na.levels <- c()
     }
@@ -274,10 +286,11 @@ data_rm_na_levels <- function(data, na.levels = TRUE) {
 #'                   You can also define residual values by setting the global option vlkr.na.numbers
 #'                   (e.g. `options(vlkr.na.numbers=c(-9))`).
 #' @param check.labels Whether to only remove NA numbers that are listed in the attributes of a column.
+#' @param default The default na numbers, if not explicitly provided by na.numbers or the options.
 #' @return Data frame
-data_rm_na_numbers <- function(data, na.numbers = TRUE, check.labels = TRUE) {
+data_rm_na_numbers <- function(data, na.numbers = TRUE, check.labels = TRUE, default = VLKR_NA_NUMBERS) {
   if (is.logical(na.numbers)) {
-    na.numbers <- cfg_get_na_numbers()
+    na.numbers <- cfg_get_na_numbers(default)
   }
 
   data %>%
@@ -286,7 +299,11 @@ data_rm_na_numbers <- function(data, na.numbers = TRUE, check.labels = TRUE) {
         dplyr::where(is.numeric),
         ~ dplyr::if_else(
             . %in% na.numbers &
-            (!check.labels | (as.character(.) %in% names(attributes(.)))),
+            (
+              !check.labels |
+              (as.character(.) %in% names(attributes(.))) |
+              (as.character(.) %in% as.character(attr(., "labels", TRUE)))
+            ),
           NA,
           .
         )
@@ -294,7 +311,7 @@ data_rm_na_numbers <- function(data, na.numbers = TRUE, check.labels = TRUE) {
     )
 }
 
-#' Reverse the Values of Specified Items
+#' Reverse item values
 #'
 #' @keywords internal
 #'
@@ -303,9 +320,8 @@ data_rm_na_numbers <- function(data, na.numbers = TRUE, check.labels = TRUE) {
 #'             For example, if you want to calculate an index of the
 #'             two items "I feel bad about this" and "I like it",
 #'             both coded with 1=not at all to 5=fully agree,
-#'             you need to reverse one of them to make the codings compatible.
-#'
-#'
+#'             you need to reverse one of them to make the
+#'             codings compatible.
 #' @return A data frame with the specified items reversed.
 data_rev <- function(data, cols) {
 
@@ -320,6 +336,52 @@ data_rev <- function(data, cols) {
   data
 }
 
+#' Convert values to numeric values
+#'
+#' @keywords internal
+#'
+#' @param data A data frame containing the items to be converted.
+#' @param cols A tidy selection of columns to convert.
+#' @return A data frame with the converted values
+data_num <- function(data, cols) {
+
+  # Get limits
+  #limits <- get_limits(data, {{ cols }})
+
+  cols_eval <- tidyselect::eval_select(expr = enquo(cols), data = data)
+  for (col in cols_eval) {
+    old_attr <- attributes(data[[col]])
+    old_attr[c("class", "levels")] <- NULL
+    data[[col]] <- as.numeric(data[[col]])
+    attributes(data[[col]]) <- old_attr
+
+  }
+
+  data
+}
+
+#' Convert numeric values to string
+#'
+#' @keywords internal
+#'
+#' @param data A data frame containing the items to be converted.
+#' @param cols A tidy selection of columns to convert.
+#' @return A data frame with the converted values
+data_cat <- function(data, cols) {
+
+  cols_eval <- tidyselect::eval_select(expr = enquo(cols), data = data)
+  for (col in cols_eval) {
+    if (is.numeric(data[[col]])) {
+      old_attr <- attributes(data[[col]])
+      old_attr[c("class", "levels")] <- NULL
+      data[[col]] <- as.character(data[[col]])
+      attributes(data[[col]]) <- old_attr
+    }
+  }
+
+  data
+}
+
 #' Get a formatted baseline for removed zero, negative, and missing cases
 #' and include focus category information if present
 #'
@@ -329,6 +391,12 @@ data_rev <- function(data, cols) {
 #' @return A formatted message or NULL if missings and focus attributes are not present.
 get_baseline <- function(obj) {
   baseline <- c()
+
+  # Cases
+  cases <- attr(obj, "cases", exact = TRUE)
+  if (!is.null(cases)) {
+    baseline <- c(baseline, paste0("n=", cases,"."))
+  }
 
   # Focus categories
   focus <- attr(obj, "focus", exact = TRUE)

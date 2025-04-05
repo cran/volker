@@ -22,8 +22,8 @@ skim_metrics <- skimr::skim_with(
     max = ~ base::ifelse(any(!is.na(.)), base::max(., na.rm = TRUE), NA),
     mean = ~ base::mean(., na.rm = TRUE),
     sd = ~ stats::sd(., na.rm = TRUE),
-    ci.low = ~ base::ifelse(length(.) > 3,  stats::t.test(stats::na.omit(.))$conf.int[1], NA),
-    ci.high = ~ base::ifelse(length(.) > 3, stats::t.test(stats::na.omit(.))$conf.int[2], NA),
+    ci.low = ~ base::ifelse((length(.) > 3) && (dplyr::n_distinct(.) > 1) ,  stats::t.test(stats::na.omit(.))$conf.int[1], NA),
+    ci.high = ~ base::ifelse((length(.) > 3)  && (dplyr::n_distinct(.) > 1), stats::t.test(stats::na.omit(.))$conf.int[2], NA),
     items = ~ get_alpha(.)$items,
     alpha = ~ get_alpha(.)$alpha
   ),
@@ -108,4 +108,78 @@ skim_boxplot <- skimr::skim_with(
 )
 
 
+#' Calculate a metric by groups
+#'
+#' @keywords internal
+#'
+#' @param data A tibble.
+#' @param cols The item columns that hold the values to summarize.
+#' @param cross The column holding groups to compare.
+#' @param value The metric to extract from the skim result, e.g. numeric.mean or numeric.sd.
+#' @param labels If TRUE (default) extracts labels from the attributes, see \link{codebook}.
+#' @return A tibble with each item in a row, a total column and columns for all groups.
+skim_grouped <- function(data, cols, cross, value = "numeric.mean", labels = TRUE) {
 
+  # Get positions of group cols
+  cross <- tidyselect::eval_select(expr = enquo(cross), data = data)
+
+  total <- data %>%
+    dplyr::select({{ cols }}) %>%
+    skim_metrics() %>%
+    dplyr::select("skim_variable", total = !!sym(value))
+
+
+  grouped <- purrr::map(
+    cross,
+    function(col) {
+      col <- names(data)[col]
+
+      data %>%
+        dplyr::filter(!is.na(!!sym(col))) %>%
+        dplyr::group_by(!!sym(col)) %>%
+        dplyr::select(!!sym(col), {{ cols }}) %>%
+        skim_metrics() %>%
+        dplyr::ungroup() %>%
+        dplyr::select("skim_variable", !!sym(col), !!sym(value)) %>%
+        tidyr::pivot_wider(
+          names_from = !!sym(col),
+          values_from = !!sym(value)
+        )
+    }
+  ) %>%
+    purrr::reduce(
+      dplyr::inner_join,
+      by = "skim_variable"
+    )
+
+
+  result <- dplyr::inner_join(total, grouped, by = "skim_variable") %>%
+    dplyr::rename(item = tidyselect::all_of("skim_variable"))
+
+
+  if (labels) {
+
+    # Item labels
+    result <- labs_replace(
+      result, "item",
+      codebook(data, {{ cols }}),
+      "item_name","item_label"
+    )
+
+    # Value labels
+    codes <- codebook(data, {{ cross }}) %>%
+      dplyr::distinct(.data$value_name, .data$value_label)
+
+    value_labels <- colnames(result)
+    value_labels[-(1:2)] <- value_labels[-(1:2)] %>%
+      purrr::map_chr(~ ifelse(
+        .x %in% codes$value_name,
+        codes$value_label[match(.x, codes$value_name)],
+        .x
+      ))
+
+    colnames(result) <- value_labels
+  }
+
+  result
+}

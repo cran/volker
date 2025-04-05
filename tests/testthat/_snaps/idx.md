@@ -21,7 +21,7 @@
       4 missing case(s) omitted.
       
 
----
+# Index is calculated
 
     Code
       data %>% add_index(tidyselect::starts_with("cg_adoption")) %>%
@@ -38,5 +38,51 @@
       |total                                             | 1.0| 2.4|    2.8| 3.2| 5.0|  2.9| 0.6| 97|    12|  0.81|
       
       4 missing case(s) omitted.
+      
+
+# Items are reversed
+
+    Code
+      dist_reversed
+    Output
+      
+      
+      |Index: cg_adoption_advantage_0 | value|
+      |:------------------------------|-----:|
+      |min                            |     1|
+      |q1                             |     3|
+      |median                         |   3.5|
+      |q3                             |   3.8|
+      |max                            |     5|
+      |mean                           |   3.3|
+      |sd                             |   0.8|
+      |n                              |    99|
+      |items                          |     4|
+      |alpha                          |  0.79|
+      
+      2 missing case(s) omitted.
+      
+
+---
+
+    Code
+      dist_unreversed
+    Output
+      
+      
+      |Index: cg_adoption_advantage_0 | value|
+      |:------------------------------|-----:|
+      |min                            |     1|
+      |q1                             |   2.2|
+      |median                         |   2.5|
+      |q3                             |     3|
+      |max                            |     5|
+      |mean                           |   2.7|
+      |sd                             |   0.8|
+      |n                              |    99|
+      |items                          |     4|
+      |alpha                          |  0.79|
+      
+      2 missing case(s) omitted.
       
 

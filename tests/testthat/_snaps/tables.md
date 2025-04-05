@@ -11,6 +11,9 @@
       |male    |  60|  59%|
       |diverse |   1|   1%|
       |total   | 101| 100%|
+      
+      n=101.
+      
 
 # Cross table of categorical variables
 
@@ -26,6 +29,9 @@
       |I wait until offers establish themselves          |   22% (22)| 13% (13)|   9% (9)|  0% (0)|
       |I only use new offers when I have no other choice |     1% (1)|   0% (0)|   1% (1)|  0% (0)|
       |total                                             | 100% (101)| 40% (40)| 59% (60)|  1% (1)|
+      
+      n=101.
+      
 
 # Cross table of categorical variables with cols
 
@@ -41,6 +47,9 @@
       |I wait until offers establish themselves          |   22% (22)|  32% (13)|   15% (9)|   0% (0)|
       |I only use new offers when I have no other choice |     1% (1)|    0% (0)|    2% (1)|   0% (0)|
       |total                                             | 100% (101)| 100% (40)| 100% (60)| 100% (1)|
+      
+      n=101.
+      
 
 # Cross table of categorical variables with percent
 
@@ -56,6 +65,9 @@
       |I wait until offers establish themselves          |   22%|    13%|   9%|      0%|
       |I only use new offers when I have no other choice |    1%|     0%|   1%|      0%|
       |total                                             |  100%|    40%|  59%|      1%|
+      
+      n=101.
+      
 
 # Cross table of categorical variables with counts
 
@@ -71,6 +83,9 @@
       |I wait until offers establish themselves          |    22|     13|    9|       0|
       |I only use new offers when I have no other choice |     1|      0|    1|       0|
       |total                                             |   101|     40|   60|       1|
+      
+      n=101.
+      
 
 # Frequency table for multiple categorical variables
 
@@ -188,7 +203,7 @@
       |3                       | 63% (64)| 68% (27)| 60% (36)| 100% (1)|
       |4                       | 54% (55)| 62% (25)| 50% (30)|   0% (0)|
       
-      Frequencies based on values: .
+      Frequencies based on values: TRUE.
       
 
 # Distribution table for age
@@ -337,7 +352,7 @@
       4 missing case(s) omitted.
       
 
-# Compare means of multiple items with and without common
+# Compare means of multiple items with and without common prefix
 
     Code
       volker::tab_metrics(data, tidyselect::starts_with("cg_adoption_"), sd_gender)
@@ -358,6 +373,7 @@
       |Almost everyone in my environment uses ChatGPT.             | 2.4 (1.2)| 2.4 (1.0)| 2.3 (1.3)| 4.0 (NA)|
       |Not using ChatGPT is considered being an outsider.          | 2.0 (1.2)| 1.8 (1.0)| 2.1 (1.3)| 4.0 (NA)|
       |Using ChatGPT brings me recognition from my environment.    | 2.3 (1.2)| 2.4 (1.2)| 2.3 (1.3)| 3.0 (NA)|
+      |n                                                           |        97|        37|        59|        1|
       
       4 missing case(s) omitted.
       
@@ -373,6 +389,7 @@
       |:------------------------------|-----------:|-----------:|-----------:|---------:|
       |Age                            | 39.7 (13.8)| 37.5 (13.4)| 41.2 (14.0)| 33.0 (NA)|
       |Usage: in professional context |  2.4 ( 1.4)|  2.5 ( 1.6)|  2.3 ( 1.3)|  4.0 (NA)|
+      |n                              |         101|          40|          60|         1|
 
 # Compare means of multiple items with sd or mean
 
@@ -396,6 +413,7 @@
       |Almost everyone in my environment uses ChatGPT.             |   1.2|    1.0|  1.3|        |
       |Not using ChatGPT is considered being an outsider.          |   1.2|    1.0|  1.3|        |
       |Using ChatGPT brings me recognition from my environment.    |   1.2|    1.2|  1.3|        |
+      |n                                                           |  97.0|   37.0| 59.0|       1|
       
       4 missing case(s) omitted.
       
@@ -422,6 +440,7 @@
       |Almost everyone in my environment uses ChatGPT.             |   2.4|    2.4|  2.3|       4|
       |Not using ChatGPT is considered being an outsider.          |   2.0|    1.8|  2.1|       4|
       |Using ChatGPT brings me recognition from my environment.    |   2.3|    2.4|  2.3|       3|
+      |n                                                           |  97.0|   37.0| 59.0|       1|
       
       4 missing case(s) omitted.
       
@@ -449,7 +468,7 @@
       |Not using ChatGPT is considered being an outsider.          |  0.09|
       |Using ChatGPT brings me recognition from my environment.    | -0.02|
       
-      4 missing case(s) omitted.
+      n=97. 4 missing case(s) omitted.
       
 
 # Correlations of an item battery with one variable and spearman
@@ -475,7 +494,7 @@
       |Not using ChatGPT is considered being an outsider.          |  0.12|
       |Using ChatGPT brings me recognition from my environment.    | -0.01|
       
-      4 missing case(s) omitted.
+      n=97. 4 missing case(s) omitted.
       
 
 # Correlate two item batteries
@@ -734,7 +753,7 @@
       4 missing case(s) omitted.
       
 
-# missing values make no trouble
+# Missing values make no trouble
 
     Code
       .
@@ -755,6 +774,7 @@
       |social_02    | 2.4 (1.2)| 4.0 (NA)| 2.3 (1.0)| 2.4 (1.2)|
       |social_03    | 1.9 (1.6)| 4.0 (NA)| 1.6 (2.0)| 2.0 (1.2)|
       |social_04    | 2.3 (1.2)| 3.0 (NA)| 2.4 (1.2)| 2.3 (1.3)|
+      |n            |       101|        1|        40|        60|
       
       3 missing case(s) omitted.
       
@@ -772,4 +792,19 @@
       |1  | 67% (2)| 33% (1)| 100% (3)|
       |2  | 33% (1)| 67% (2)| 100% (3)|
       |10 | 67% (2)| 33% (1)| 100% (3)|
+
+# Values are relabeled
+
+    Code
+      data %>% dplyr::filter(sd_gender != "diverse") %>% volker::labs_apply(cols = sd_gender,
+        values = list(female = "Weiblich", male = "Maennlich")) %>% volker::tab_metrics(
+        sd_age, sd_gender)
+    Output
+      
+      
+      |Gender    | min|   q1| median|   q3| max| mean|   sd|   n|
+      |:---------|---:|----:|------:|----:|---:|----:|----:|---:|
+      |Weiblich  |  18| 25.8|   38.0| 44.2|  63| 37.5| 13.4|  40|
+      |Maennlich |  19| 32.5|   38.5| 52.0|  68| 41.2| 14.0|  60|
+      |total     |  18| 27.0|   38.0| 52.0|  68| 39.7| 13.8| 100|
 

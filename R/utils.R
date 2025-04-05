@@ -43,16 +43,18 @@ zip_tables <- function(x, y, newline = TRUE, brackets = FALSE) {
   obj
 }
 
-#' Transfer an attribute from one to another object
+#' Transfer attributes from one to another object
 #'
 #' @keywords internal
 #'
 #' @param to The target object.
 #' @param from The source object.
-#' @param key The attribute key as character value.
-#' @return The target object with the updated attribute.
-.attr_transfer <- function(to, from, key) {
-  attr(to, key) <- attr(from, key, exact=TRUE)
+#' @param keys A character vector of attribute keys
+#' @return The target object with the updated attributes.
+.attr_transfer <- function(to, from, keys) {
+  for (key in keys) {
+    attr(to, key) <- attr(from, key, exact=TRUE)
+  }
   to
 }
 
@@ -76,4 +78,23 @@ zip_tables <- function(x, y, newline = TRUE, brackets = FALSE) {
   attributes(x) <- old
 
   x
+}
+
+#' Convert a named vector to a list
+#'
+#' @keywords internal
+#'
+#' @param x A named vector or a list
+#' @return Lists are returned as is. Vectors are converted to lists with names as list names.
+named.to.list <- function(x) {
+
+  if (is.list(x)) {
+    return (x)
+  }
+
+  x_names <- as.character(x)
+  x_values <- as.character(names(x))
+  y = as.list(x_values)
+  names(y) <- x_names
+  y
 }
